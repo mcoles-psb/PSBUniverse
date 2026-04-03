@@ -1,0 +1,23 @@
+{
+  "name": "psbuniverse",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.101.1",
+    "bootstrap": "^5.3.8",
+    "next": "16.2.2",
+    "react": "19.2.4",
+    "react-bootstrap": "^2.10.10",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "eslint-config-next": "16.2.2"
+  }
+}

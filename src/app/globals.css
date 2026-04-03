@@ -1,0 +1,262 @@
+@import "bootstrap/dist/css/bootstrap.min.css";
+
+body {
+  min-height: 100vh;
+  background: #f0f4f8;
+}
+
+.auth-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-topbar {
+  border-bottom: 1px solid #d4e0ea;
+  background: #ffffff;
+}
+
+.app-topbar-label {
+  color: #1f5f93;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.app-topbar-user {
+  color: #425466;
+  font-size: 0.9rem;
+}
+
+.app-topbar-nav {
+  display: inline-flex;
+  gap: 0.4rem;
+  background: #eef3f8;
+  border: 1px solid #d9e4ee;
+  border-radius: 999px;
+  padding: 0.2rem;
+}
+
+.app-topbar-link {
+  border-radius: 999px;
+  padding: 0.24rem 0.72rem;
+  text-decoration: none;
+  color: #35556f;
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+.app-topbar-link.active {
+  background: #ffffff;
+  color: #133b5a;
+  box-shadow: 0 1px 3px rgba(18, 47, 74, 0.18);
+}
+
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 480px;
+  border: 1px solid #c2d2e0;
+  border-radius: 14px;
+}
+
+.login-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
+.tile-card {
+  border: 1px solid #c2d2e0;
+  border-radius: 12px;
+  padding: 1.1rem;
+  min-height: 170px;
+  transition: transform 140ms ease, box-shadow 180ms ease;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.tile-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(30, 68, 99, 0.16);
+  border-color: #8eb2d0;
+}
+
+.tile-badge {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #2f699d;
+  font-weight: 600;
+}
+
+.tile-cta {
+  font-size: 0.84rem;
+  color: #1f5f93;
+  font-weight: 600;
+}
+
+.setup-table th {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.setup-table td {
+  vertical-align: middle;
+}
+
+.back-link {
+  text-decoration: none;
+  color: #1f5f93;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.back-link:hover {
+  color: #143d5e;
+}
+
+.profile-wrap {
+  max-width: 1180px;
+}
+
+.profile-hero {
+  border-radius: 18px;
+  border: 1px solid #1e4f70;
+  background: linear-gradient(130deg, #0d334c 0%, #1f6b84 50%, #2f8f8b 100%);
+  color: #f2f7fb;
+  overflow: hidden;
+  position: relative;
+  min-height: 220px;
+  display: flex;
+  align-items: end;
+}
+
+.profile-hero-sheen {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 25%, rgba(255, 255, 255, 0.2), transparent 36%),
+    radial-gradient(circle at 75% 5%, rgba(255, 255, 255, 0.2), transparent 28%),
+    radial-gradient(circle at 72% 72%, rgba(255, 255, 255, 0.14), transparent 30%);
+  pointer-events: none;
+}
+
+.profile-hero-content {
+  position: relative;
+  z-index: 1;
+  padding: 1.8rem;
+}
+
+.profile-kicker {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.profile-title {
+  font-size: clamp(1.7rem, 3.6vw, 2.4rem);
+  font-weight: 700;
+}
+
+.profile-subtitle {
+  color: rgba(242, 247, 251, 0.9);
+  max-width: 56ch;
+}
+
+.profile-card,
+.profile-stat-card {
+  border: 1px solid #cfdeea;
+  border-radius: 14px;
+  box-shadow: 0 8px 26px rgba(20, 53, 81, 0.08);
+}
+
+.profile-section-label {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: #316186;
+  font-weight: 700;
+}
+
+.profile-card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #122f46;
+}
+
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.72rem 0;
+  border-top: 1px solid #e5edf4;
+}
+
+.profile-row-label {
+  color: #4a6379;
+  font-size: 0.9rem;
+}
+
+.profile-badge {
+  border: 1px solid #d4e2ec;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.profile-schedule-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.profile-schedule-item {
+  background: #f4f8fc;
+  border: 1px solid #dce7f1;
+  border-radius: 10px;
+  padding: 0.8rem 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.profile-schedule-item span {
+  color: #4d657c;
+  font-size: 0.9rem;
+}
+
+.profile-stat-label {
+  color: #50667a;
+  font-size: 0.86rem;
+}
+
+.profile-stat-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #163e5d;
+}
+
+@media (max-width: 991px) {
+  .app-topbar-user {
+    width: 100%;
+  }
+
+  .profile-schedule-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
