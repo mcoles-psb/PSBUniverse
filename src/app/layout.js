@@ -1,5 +1,4 @@
 import "./globals.css";
-import AuthShell from "@/components/AuthShell";
 
 export const metadata = {
   title: "PSBUniverse",
@@ -9,9 +8,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
-        <AuthShell>{children}</AuthShell>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

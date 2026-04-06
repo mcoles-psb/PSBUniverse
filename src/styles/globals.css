@@ -1,0 +1,120 @@
+.auth-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-header {
+  border-bottom: 1px solid var(--psb-border);
+  background: var(--psb-surface);
+  padding: 0.75rem 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.app-header-kicker {
+  color: var(--psb-brand);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+}
+
+.app-header-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.app-header-user {
+  color: var(--psb-muted);
+  font-size: 0.9rem;
+}
+
+.app-sidebar {
+  border-right: 1px solid var(--psb-border);
+  background: var(--psb-surface);
+  padding: 1rem;
+}
+
+.app-sidebar-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--psb-brand);
+  font-weight: 700;
+}
+
+.app-sidebar-link {
+  display: block;
+  text-decoration: none;
+  color: var(--psb-text);
+  border: 1px solid transparent;
+  border-radius: 0.65rem;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.92rem;
+}
+
+.app-sidebar-link:hover {
+  border-color: var(--psb-border);
+  background: #f5f9fc;
+}
+
+.app-sidebar-link.active {
+  border-color: #a9c1d6;
+  background: #edf5fb;
+  color: #114469;
+  font-weight: 700;
+}
+
+.tile-card {
+  border: 1px solid #c2d2e0;
+  border-radius: 12px;
+  padding: 1.1rem;
+  min-height: 170px;
+  transition: transform 140ms ease, box-shadow 180ms ease;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.tile-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--psb-shadow);
+  border-color: #8eb2d0;
+}
+
+.tile-badge {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #2f699d;
+  font-weight: 600;
+}
+
+.tile-cta {
+  font-size: 0.84rem;
+  color: #1f5f93;
+  font-weight: 600;
+}
+
+.setup-table th {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.setup-table td {
+  vertical-align: middle;
+}
+
+.back-link {
+  text-decoration: none;
+  color: #1f5f93;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.back-link:hover {
+  color: #143d5e;
+}

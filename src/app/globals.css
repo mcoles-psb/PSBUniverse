@@ -1,9 +1,7 @@
 @import "bootstrap/dist/css/bootstrap.min.css";
-
-body {
-  min-height: 100vh;
-  background: #f0f4f8;
-}
+@import "../styles/variables.css";
+@import "../styles/theme.css";
+@import "../styles/globals.css";
 
 .auth-loading {
   min-height: 100vh;

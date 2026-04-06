@@ -1,0 +1,10 @@
+:root {
+  --psb-bg: #eef3f8;
+  --psb-surface: #ffffff;
+  --psb-text: #173348;
+  --psb-muted: #4f6578;
+  --psb-border: #c8d7e4;
+  --psb-brand: #1d597f;
+  --psb-brand-2: #2b7b89;
+  --psb-shadow: 0 12px 32px rgba(18, 54, 83, 0.12);
+}

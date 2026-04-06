@@ -10,5 +10,11 @@
     "json": "npm.cmd --prefix \"$workspaceRoot\" run dev",
     "jsonc": "npm.cmd --prefix \"$workspaceRoot\" run dev",
     "plaintext": "npm.cmd --prefix \"$workspaceRoot\" run dev"
+  },
+  "chat.tools.terminal.autoApprove": {
+    "Copy-Item": true,
+    "Move-Item": true,
+    "ForEach-Object": true,
+    "Set-Content": true
   }
 }

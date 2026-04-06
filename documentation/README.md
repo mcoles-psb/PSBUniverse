@@ -5,7 +5,7 @@ This folder contains full project documentation for PSBUniverse, organized by pl
 ## Core
 
 - [Project Overview](./project-overview.md)
-- [Getting Started](./getting-started.md)
+- [Getting Started (includes New App/Module Guide)](./getting-started.md)
 
 ## Platform
 
