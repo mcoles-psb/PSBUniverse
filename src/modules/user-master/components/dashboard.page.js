@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Alert, Container, Row, Col, Card, Spinner } from "react-bootstrap";
+import { Container, Row, Col, Card, Spinner } from "react-bootstrap";
 
 const tiles = [
   {
@@ -167,7 +167,7 @@ export default function HomePage() {
           <Col md={7}>
             <p
               className="text-muted text-uppercase mb-1"
-              style={{ fontSize: "0.74rem", letterSpacing: "0.08em" }}
+              style={{ letterSpacing: "0.08em" }}
             >
               PSB Portal
             </p>
@@ -183,11 +183,11 @@ export default function HomePage() {
                 <p className="fw-bold mb-0">Premium Steel Building</p>
                 <p
                   className="text-muted text-uppercase mb-2"
-                  style={{ fontSize: "0.74rem", letterSpacing: "0.25em" }}
+                  style={{ letterSpacing: "0.25em" }}
                 >
                   Premium Gutters and Doors
                 </p>
-                <p className="mb-0" style={{ fontSize: "0.9rem" }}>
+                <p className="mb-0">
                   <strong>Email:</strong> Sales.pgd@premiumsteelgroup.com
                   <br />
                   <strong>Phone:</strong> 817-502-2520
@@ -204,16 +204,15 @@ export default function HomePage() {
           Checking app access...
         </div>
       ) : !canViewApps ? (
-        <Alert variant="warning" className="mb-0">
+        <div className="notice-banner notice-banner-warning mb-0">
           {accessMessage}
-        </Alert>
+        </div>
       ) : (
         tiles.map((section) => (
         <div key={section.category} className="mb-4">
           <p
             className="text-uppercase fw-bold mb-2"
             style={{
-              fontSize: "0.76rem",
               letterSpacing: "0.08em",
               color: "#1f5f93",
             }}
@@ -226,7 +225,7 @@ export default function HomePage() {
                 <Link href={tile.href} className="tile-card bg-white">
                   <span className="tile-badge">{section.category}</span>
                   <h5 className="mt-2 mb-2">{tile.title}</h5>
-                  <p className="text-muted" style={{ fontSize: "0.92rem" }}>
+                  <p className="text-muted">
                     {tile.description}
                   </p>
                   <span className="tile-cta">{tile.cta}</span>

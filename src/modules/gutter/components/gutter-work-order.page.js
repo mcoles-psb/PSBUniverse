@@ -10,11 +10,11 @@ import {
   Button,
   Card,
   Table,
-  Alert,
 } from "react-bootstrap";
 import { supabase } from "@/infrastructure/supabase/client";
 import { createCacheKey } from "@/core/cache";
 import { getSupabaseSelectWithCache } from "@/core/cache";
+import { toastError, toastInfo } from "@/shared/utils/toast";
 
 const CACHE_NAMESPACE = "psb-universe";
 const PROJECT_DATA_TTL_MS = 5 * 60 * 1000;
@@ -35,7 +35,6 @@ export default function WorkOrderPage({ params }) {
     materials: [],
   });
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
 
   const loadData = useCallback(async (options = {}) => {
     const forceFresh = Boolean(options.forceFresh);
@@ -101,7 +100,7 @@ export default function WorkOrderPage({ params }) {
       }
     } catch (error) {
       console.error("Failed to load work-order data", error);
-      setMessage("Error loading work-order data.");
+      toastError("Error loading work-order data.", "Work Order");
     }
 
     setLoading(false);
@@ -120,8 +119,9 @@ export default function WorkOrderPage({ params }) {
   };
 
   const saveWorkOrder = async () => {
-    setMessage(
-      "Work-order notes are not persisted yet because this relational schema has no dedicated work-order table/columns."
+    toastInfo(
+      "Work-order notes are not persisted yet because this relational schema has no dedicated work-order table/columns.",
+      "Work Order"
     );
   };
 
@@ -136,21 +136,11 @@ export default function WorkOrderPage({ params }) {
         </Link>
         <div>
           <h2 className="mb-0">Work Order</h2>
-          <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
+          <p className="text-muted mb-0">
             {project.projectName || project.projId}
           </p>
         </div>
       </div>
-
-      {message && (
-        <Alert
-          variant={message.includes("Error") ? "danger" : "success"}
-          dismissible
-          onClose={() => setMessage("")}
-        >
-          {message}
-        </Alert>
-      )}
 
       <Card className="mb-3">
         <Card.Header className="fw-bold">Project Information</Card.Header>

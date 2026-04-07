@@ -1,10 +1,38 @@
 # Getting Started
 
+## Install First (Run + Development)
+
+Install these tools before opening the project:
+
+- Git (latest)
+- Node.js 20 LTS or newer
+- npm (comes with Node.js)
+- VS Code (latest)
+- Supabase project access (URL + anon key)
+
+Optional but recommended:
+
+- Supabase CLI (if you manage local Supabase workflows)
+
+## Recommended VS Code Extensions
+
+- ESLint (`dbaeumer.vscode-eslint`)
+- GitHub Copilot (`GitHub.copilot`)
+- GitHub Copilot Chat (`GitHub.copilot-chat`)
+
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - npm
 - Supabase project with required tables and permissions
+
+## First-Time Setup Order
+
+1. Clone repository.
+2. Run `npm install`.
+3. Create `.env.local` with Supabase values.
+4. Run `npm run dev`.
+5. Run `npm run lint` before committing.
 
 ## Install Dependencies
 
@@ -42,6 +70,27 @@ npm run build
 npm run start
 ```
 
+## UI and Interaction Standards (Required)
+
+Apply these standards to all new pages and module work:
+
+- Keep `dense-workspace` active at root layout.
+- Use typography scale:
+	- Base text: 13px
+	- Labels: 11px (muted)
+	- Section headers: 14px
+	- Page titles: 18px
+- Keep control density compact:
+	- Inputs/selects: 32px height
+	- Textareas: compact by default, no oversized blocks
+	- Buttons: smaller/tighter sizes for operational use
+- Use global toasts for dynamic operation feedback:
+	- `toastSuccess`, `toastError`, `toastWarning`, `toastInfo`
+- Keep navbar progress feedback active for navigation and requests:
+	- Header bar should animate with transform: scaleX(...), not width.
+	- Avoid top-level navigation spinners for page transitions.
+- Do not introduce inline dynamic alert banners for request feedback.
+
 ---
 
 ## Add A New App (Module)
@@ -74,6 +123,7 @@ The steps below are written for junior developers and use simple language.
 #### Important rule
 
 - Adding a new app should NOT require changing other apps.
+- New modules should follow the same compact UI and global toast behavior used by existing modules.
 
 ### 2. Step-by-Step Guide
 
@@ -167,6 +217,45 @@ export async function listInventoryItems() {
 
 Use this service from your module component, not from the route file.
 
+#### Step 4.1 - Add notification behavior
+
+Use the shared toast helper for success/error feedback in module pages:
+
+```javascript
+import { toastError, toastSuccess } from "@/shared/utils/toast";
+
+toastSuccess("Saved.", "Inventory");
+toastError("Unable to save.", "Inventory");
+```
+
+#### Step 4.2 - Integrate navbar progress loader for custom navigation/tasks
+
+The protected app shell already tracks:
+
+- Route transitions from normal links and browser history navigation.
+- Same-origin API requests under /api/*.
+
+For programmatic navigation or custom async work that is not covered automatically, use:
+
+```javascript
+import { finishNavbarLoader, startNavbarLoader } from "@/shared/utils/navbar-loader";
+
+startNavbarLoader();
+
+try {
+	await doCustomAsyncWork();
+} finally {
+	finishNavbarLoader();
+}
+```
+
+For explicit router.push/router.replace flows:
+
+```javascript
+startNavbarLoader();
+router.push("/target-route");
+```
+
 #### Step 5 - Use shared systems
 
 Use these shared folders instead of making duplicates:
@@ -175,6 +264,10 @@ Use these shared folders instead of making duplicates:
 - Cache: src/core/cache
 - Supabase: src/infrastructure/supabase
 - UI components: src/shared/components
+- Toast utilities: src/shared/utils/toast.js
+- Global toast host: src/shared/components/ui/GlobalToastHost.js
+- Navbar loader utilities: src/shared/utils/navbar-loader.js
+- Protected header shell loader orchestration: src/shared/components/layout/AppLayout.js
 
 #### Step 6 - Follow naming rules
 

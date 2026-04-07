@@ -30,6 +30,7 @@ function normalizeToastPayload(payload) {
       Number.isFinite(Number(payload?.durationMs)) && Number(payload.durationMs) >= 0
         ? Number(payload.durationMs)
         : 4000,
+    createdAt: Date.now(),
   };
 }
 
@@ -37,15 +38,33 @@ export default function GlobalToastHost() {
   const [toasts, setToasts] = useState([]);
   const timersRef = useRef(new Map());
 
-  const removeToast = useCallback((id) => {
-    setToasts((previous) => previous.filter((toast) => toast.id !== id));
-
+  const clearToastTimer = useCallback((id) => {
     const timerId = timersRef.current.get(id);
     if (timerId) {
       window.clearTimeout(timerId);
       timersRef.current.delete(id);
     }
   }, []);
+
+  const removeToast = useCallback((id) => {
+    setToasts((previous) => previous.filter((toast) => toast.id !== id));
+    clearToastTimer(id);
+  }, [clearToastTimer]);
+
+  const scheduleToastTimer = useCallback((toast) => {
+    clearToastTimer(toast.id);
+
+    if (toast.durationMs <= 0) {
+      return;
+    }
+
+    const timerId = window.setTimeout(() => {
+      setToasts((previous) => previous.filter((item) => item.id !== toast.id));
+      clearToastTimer(toast.id);
+    }, toast.durationMs);
+
+    timersRef.current.set(toast.id, timerId);
+  }, [clearToastTimer]);
 
   useEffect(() => {
     const timers = timersRef.current;
@@ -55,28 +74,13 @@ export default function GlobalToastHost() {
       if (!toast.message) return;
 
       setToasts((previous) => {
-        const next = [...previous, toast];
-
-        if (next.length <= MAX_VISIBLE_TOASTS) {
-          return next;
-        }
-
-        const removed = next[0];
-        const removedTimer = timers.get(removed.id);
-        if (removedTimer) {
-          window.clearTimeout(removedTimer);
-          timers.delete(removed.id);
-        }
-
-        return next.slice(next.length - MAX_VISIBLE_TOASTS);
+        const next = [toast, ...previous];
+        const removed = next.slice(MAX_VISIBLE_TOASTS);
+        removed.forEach((item) => clearToastTimer(item.id));
+        return next.slice(0, MAX_VISIBLE_TOASTS);
       });
 
-      if (toast.durationMs > 0) {
-        const timerId = window.setTimeout(() => {
-          removeToast(toast.id);
-        }, toast.durationMs);
-        timers.set(toast.id, timerId);
-      }
+      scheduleToastTimer(toast);
     }
 
     window.addEventListener(TOAST_EVENT, handleToastEvent);
@@ -88,17 +92,26 @@ export default function GlobalToastHost() {
       });
       timers.clear();
     };
-  }, [removeToast]);
+  }, [clearToastTimer, scheduleToastTimer]);
 
   if (toasts.length === 0) return null;
 
   return (
-    <div className="global-toast-layer" aria-live="polite" aria-atomic="false">
-      {toasts.map((toast) => (
+    <div
+      className="global-toast-layer"
+      aria-live="polite"
+      aria-atomic="false"
+      style={{ "--toast-count": toasts.length }}
+    >
+      {toasts.map((toast, index) => (
         <div
           key={toast.id}
-          className={`global-toast-item global-toast-${toast.type}`}
+          className={`global-toast-item global-toast-${toast.type}${index === 0 ? " is-latest" : ""}`}
           role={toast.type === TOAST_TYPES.error ? "alert" : "status"}
+          style={{
+            "--toast-index": index,
+            zIndex: MAX_VISIBLE_TOASTS - index,
+          }}
         >
           <div className="global-toast-inner">
             <span className={`global-toast-icon global-toast-icon-${toast.type}`} aria-hidden="true">

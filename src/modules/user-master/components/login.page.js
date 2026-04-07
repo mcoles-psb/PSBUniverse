@@ -125,7 +125,7 @@ export default function LoginPage() {
                     <div className="portal-login-form-inner">
                       <div className="mb-3">
                         <h2 className="mb-1">Sign In</h2>
-                        <p className="text-muted mb-0" style={{ fontSize: "0.92rem" }}>
+                        <p className="text-muted mb-0">
                           Use your username/email and password.
                         </p>
                       </div>

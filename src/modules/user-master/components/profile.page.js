@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Badge,
   Button,
   Card,
@@ -10,6 +9,7 @@ import {
   Container,
   Row,
 } from "react-bootstrap";
+import { toastError } from "@/shared/utils/toast";
 import {
   cacheReferenceData,
   cacheSessionData,
@@ -83,7 +83,6 @@ function normalizeProfilePayload(payload) {
 
 export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
   const [session, setSession] = useState(null);
   const [access, setAccess] = useState(null);
   const [relations, setRelations] = useState({
@@ -112,7 +111,6 @@ export default function UserProfilePage() {
   const loadProfile = useCallback(async (options = {}) => {
     const forceFresh = Boolean(options.forceFresh);
     setLoading(true);
-    setMessage("");
 
     try {
       const [sessionPayload, profilePayloadRaw, bootstrapPayload] = await Promise.all([
@@ -191,7 +189,7 @@ export default function UserProfilePage() {
           user.status_id === undefined || user.status_id === null ? "" : String(user.status_id),
       });
     } catch (error) {
-      setMessage(error?.message || "Unable to load profile");
+      toastError(error?.message || "Unable to load profile", "User Profile");
     } finally {
       setLoading(false);
     }
@@ -275,22 +273,20 @@ export default function UserProfilePage() {
     <Container className="py-4 profile-page-shell" style={{ maxWidth: 1120 }}>
       <div className="mb-3">
         <h2 className="mb-0">User Profile</h2>
-        <p className="text-muted mb-0" style={{ fontSize: "0.86rem" }}>
+        <p className="text-muted mb-0">
           A simple, read-only profile view for your account.
         </p>
       </div>
 
-      <Alert variant="info" className="profile-readonly-alert">
+      <div className="profile-readonly-alert notice-banner notice-banner-info mb-3">
         Profile and password updates are managed by administrators in Configuration & Settings.
         Please email your administrator to request any changes.
-      </Alert>
-
-      {message ? <Alert variant="danger">{message}</Alert> : null}
+      </div>
 
       {access && !access.hasAccess ? (
-        <Alert variant="warning" className="mb-3">
+        <div className="notice-banner notice-banner-warning mb-3">
           Your account has no role mapping in psb_m_userapproleaccess.
-        </Alert>
+        </div>
       ) : null}
 
       <Row className="g-3 align-items-stretch">
@@ -309,7 +305,7 @@ export default function UserProfilePage() {
                 <p className="mb-0">{departmentLabel}</p>
               </div>
 
-              <div className="mt-4" style={{ fontSize: "0.9rem" }}>
+              <div className="mt-4">
                 <p className="mb-1 text-muted">Administrator Contact</p>
                 <p className="mb-0 fw-semibold">
                   {adminEmail || "Administrator Email Not Available"}
@@ -324,7 +320,7 @@ export default function UserProfilePage() {
             <Card.Body>
               <p className="profile-section-kicker mb-1">My PSB</p>
               <h4 className="mb-1">Profile Snapshot</h4>
-              <p className="text-muted mb-3" style={{ fontSize: "0.9rem" }}>
+              <p className="text-muted mb-3">
                 Your account details are visible here for quick reference.
               </p>
 
@@ -378,10 +374,10 @@ export default function UserProfilePage() {
           <Card className="profile-request-card border-0 shadow-sm">
             <Card.Body>
               <h5 className="mb-2">Need to update something?</h5>
-              <p className="text-muted mb-2" style={{ fontSize: "0.92rem" }}>
+              <p className="text-muted mb-2">
                 Profile fields and password changes are restricted to administrators only.
               </p>
-              <p className="mb-0" style={{ fontSize: "0.92rem" }}>
+              <p className="mb-0">
                 Send your request by email and include your username plus the exact changes needed.
               </p>
             </Card.Body>

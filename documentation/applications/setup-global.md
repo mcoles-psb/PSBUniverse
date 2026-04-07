@@ -17,6 +17,8 @@ Manage shared setup/reference tables used across modules.
 - Editable table rows with inline edit controls.
 - Save strategy clears table and reinserts cleaned draft rows.
 - Numeric fields are normalized to numbers.
+- Dynamic save/error feedback uses global toasts.
+- Page follows global compact-density UI defaults.
 
 ## Cache Integration
 

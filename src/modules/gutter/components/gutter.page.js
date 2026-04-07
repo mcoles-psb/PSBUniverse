@@ -17,6 +17,7 @@ import {
   DEFAULT_CACHE_TTL_MS,
 } from "@/core/cache";
 import { getSupabaseSelectWithCache } from "@/core/cache";
+import { startNavbarLoader } from "@/shared/utils/navbar-loader";
 
 const CACHE_NAMESPACE = "psb-universe";
 const PROJECTS_LIST_TTL_MS = 5 * 60 * 1000;
@@ -156,7 +157,7 @@ export default function GutterCalculatorPage() {
         </Link>
         <div>
           <h2 className="mb-0">Gutter Quote Calculator</h2>
-          <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
+          <p className="text-muted mb-0">
             Project list and status workspace
           </p>
         </div>
@@ -185,13 +186,16 @@ export default function GutterCalculatorPage() {
               key={project.proj_id}
               className="d-flex justify-content-between align-items-center"
               style={{ cursor: "pointer" }}
-              onClick={() => router.push(`/gutter/${project.proj_id}`)}
+              onClick={() => {
+                startNavbarLoader();
+                router.push(`/gutter/${project.proj_id}`);
+              }}
             >
               <div>
                 <p className="fw-bold mb-0">
                   {project.project_name || "(Untitled project)"}
                 </p>
-                <p className="text-muted mb-0" style={{ fontSize: "0.84rem" }}>
+                <p className="text-muted mb-0">
                   ID: {project.proj_id || "--"} |{" "}
                   <Badge bg="secondary" className="me-1">
                     {(Array.isArray(project.gtr_s_statuses)
@@ -217,9 +221,10 @@ export default function GutterCalculatorPage() {
                     Mark as Cancelled
                   </Dropdown.Item>
                   <Dropdown.Item
-                    onClick={() =>
-                      router.push(`/gutter/${project.proj_id}/work-order`)
-                    }
+                    onClick={() => {
+                      startNavbarLoader();
+                      router.push(`/gutter/${project.proj_id}/work-order`);
+                    }}
                   >
                     Work Order
                   </Dropdown.Item>

@@ -9,6 +9,18 @@ PSBUniverse is a Next.js App Router application used to manage quote workflows f
 - Enable gutter project creation, editing, pricing preview, and work-order generation.
 - Reduce repeated database calls using a reusable browser cache layer.
 
+## UX Direction
+
+- Dense, tool-first layout optimized for daily operations.
+- Global typography and spacing standards:
+	- Base text: 13px
+	- Labels: 11px
+	- Section headers: 14px
+	- Page titles: 18px
+	- Standard input height: 32px
+- Global toast notifications are used for dynamic success/error/warning/info feedback.
+- Premium navbar progress loader provides route/request/background loading feedback in protected pages.
+
 ## Current Module Status
 
 - Home dashboard: active.
@@ -30,6 +42,11 @@ PSBUniverse is a Next.js App Router application used to manage quote workflows f
 ## Source Map
 
 - App routes: src/app
-- Shared libraries: src/lib
-- Styling: src/app/globals.css
+- Core shared libraries: src/core
+- Infrastructure clients: src/infrastructure
+- Module services and logic: src/modules
+- Shared UI utilities: src/shared
+- Styling entrypoint: src/app/globals.css
+- Styling system: src/styles/globals.css
+- Root layout shell: src/app/layout.js
 - Project docs: documentation

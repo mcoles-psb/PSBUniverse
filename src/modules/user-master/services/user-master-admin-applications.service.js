@@ -38,7 +38,15 @@ export async function GET(request) {
       .order(USER_MASTER_COLUMNS.appId, { ascending: true });
 
     if (error) throw error;
-    return NextResponse.json({ applications: data || [] });
+    const applications = data || [];
+    return NextResponse.json({
+      success: true,
+      message: "Applications loaded",
+      data: {
+        applications,
+      },
+      applications,
+    });
   } catch (error) {
     return toErrorResponse(error?.message || "Unable to list applications", 500);
   }
@@ -63,7 +71,14 @@ export async function POST(request) {
       .single();
 
     if (error) throw error;
-    return NextResponse.json({ message: "Application created", application: data });
+    return NextResponse.json({
+      success: true,
+      message: "Application created",
+      data: {
+        application: data,
+      },
+      application: data,
+    });
   } catch (error) {
     return toErrorResponse(error?.message || "Unable to create application", 500);
   }
@@ -102,7 +117,14 @@ export async function PATCH(request) {
       .single();
 
     if (error) throw error;
-    return NextResponse.json({ message: "Application updated", application: data });
+    return NextResponse.json({
+      success: true,
+      message: "Application updated",
+      data: {
+        application: data,
+      },
+      application: data,
+    });
   } catch (error) {
     return toErrorResponse(error?.message || "Unable to update application", 500);
   }
@@ -131,7 +153,14 @@ export async function DELETE(request) {
       .eq(USER_MASTER_COLUMNS.appId, appId);
 
     if (error) throw error;
-    return NextResponse.json({ message: "Application deleted" });
+    return NextResponse.json({
+      success: true,
+      message: "Application deleted",
+      data: {
+        app_id: appId,
+        deleted: true,
+      },
+    });
   } catch (error) {
     return toErrorResponse(error?.message || "Unable to delete application", 500);
   }

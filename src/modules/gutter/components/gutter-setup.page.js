@@ -8,11 +8,11 @@ import {
   Table,
   Button,
   Form,
-  Alert,
 } from "react-bootstrap";
 import { supabase } from "@/infrastructure/supabase/client";
 import { createCacheKey, invalidateCacheKeys } from "@/core/cache";
 import { getSupabaseSelectWithCache } from "@/core/cache";
+import { toastError, toastSuccess } from "@/shared/utils/toast";
 
 const CACHE_NAMESPACE = "psb-universe";
 const CACHE_KEYS = {
@@ -34,13 +34,11 @@ function SetupTable({
   const [editing, setEditing] = useState(new Set());
   const [draft, setDraft] = useState([]);
   const [dirty, setDirty] = useState(false);
-  const [msg, setMsg] = useState("");
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDraft(data.map((r) => ({ ...r })));
       setDirty(false);
-      setMsg("");
     }, 0);
 
     return () => clearTimeout(timer);
@@ -86,11 +84,9 @@ function SetupTable({
     setDraft(data.map((r) => ({ ...r })));
     setEditing(new Set());
     setDirty(false);
-    setMsg("");
   };
 
   const save = async () => {
-    setMsg("");
     const rows = draft
       .filter((r) => columns.some((c) => String(r[c.key] || "").trim() !== ""))
       .map((r) => {
@@ -107,7 +103,7 @@ function SetupTable({
       .delete()
       .gt(pkColumn, 0);
     if (delError) {
-      setMsg("Error: " + delError.message);
+      toastError("Error: " + delError.message, title);
       return;
     }
 
@@ -116,14 +112,14 @@ function SetupTable({
         .from(tableName)
         .insert(rows);
       if (insError) {
-        setMsg("Error: " + insError.message);
+        toastError("Error: " + insError.message, title);
         return;
       }
     }
 
     setEditing(new Set());
     setDirty(false);
-    setMsg("Saved!");
+    toastSuccess("Saved!", title);
     if (cacheKey) {
       invalidateCacheKeys([cacheKey], { namespace: cacheNamespace });
     }
@@ -134,16 +130,6 @@ function SetupTable({
     <Accordion.Item eventKey={tableName}>
       <Accordion.Header>{title}</Accordion.Header>
       <Accordion.Body>
-        {msg && (
-          <Alert
-            variant={msg.includes("Error") ? "danger" : "success"}
-            className="py-1 px-2 small"
-            dismissible
-            onClose={() => setMsg("")}
-          >
-            {msg}
-          </Alert>
-        )}
         <Table size="sm" bordered className="setup-table mb-2">
           <thead>
             <tr>
@@ -284,7 +270,7 @@ export default function GutterSetupPage() {
         </Link>
         <div>
           <h2 className="mb-0">Gutter Setup Tables</h2>
-          <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
+          <p className="text-muted mb-0">
             Gutter-specific setup data (shared tables in Global Setup)
           </p>
         </div>

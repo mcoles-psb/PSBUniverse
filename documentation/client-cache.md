@@ -2,7 +2,7 @@
 
 The project includes a reusable browser cache utility for all current and future app modules.
 
-- Location: `src/lib/cache/`
+- Location: `src/core/cache/`
 - Storage: `localStorage` (with in-memory fallback when unavailable)
 - Default TTL: 8 hours
 - Entry fields: `key`, `data`, `created_at`, `created_at_ms`, `expires_at_ms`, optional `version`, optional `last_updated`

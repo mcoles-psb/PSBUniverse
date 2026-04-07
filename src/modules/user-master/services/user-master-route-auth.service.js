@@ -87,6 +87,8 @@ export function sanitizeUserRecord(userRecord) {
 export function toErrorResponse(message, status = 400, details) {
   return NextResponse.json(
     {
+      success: false,
+      message,
       error: message,
       ...(details ? { details } : {}),
     },

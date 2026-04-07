@@ -20,6 +20,8 @@ Fields in use:
 - Loads a single profile row.
 - Save flow deletes existing rows and inserts one replacement row.
 - Provides a preview panel for current values.
+- Dynamic load/save feedback uses global toasts.
+- Page follows global compact-density UI defaults.
 
 ## Cache Integration
 

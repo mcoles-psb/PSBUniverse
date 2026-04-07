@@ -16,6 +16,8 @@ Manage gutter-specific setup reference values.
 
 - Editable setup table UI with add, edit, remove, save, and cancel.
 - Save strategy clears and reinserts cleaned rows.
+- Dynamic save/error feedback uses global toasts.
+- Page follows global compact-density UI defaults.
 
 ## Cache Integration
 

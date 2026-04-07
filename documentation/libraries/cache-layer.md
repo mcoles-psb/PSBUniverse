@@ -2,9 +2,9 @@
 
 Files:
 
-- src/lib/cache/clientCache.js
-- src/lib/cache/supabaseCache.js
-- src/lib/cache/index.js
+- src/core/cache/adapters/browser-cache.adapter.js
+- src/core/cache/adapters/supabase-cache.adapter.js
+- src/core/cache/index.js
 
 ## Purpose
 

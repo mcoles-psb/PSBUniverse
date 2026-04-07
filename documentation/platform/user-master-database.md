@@ -112,7 +112,7 @@ Behavior:
 
 The centralized resolver is implemented at:
 
-- src/lib/userMasterAccess.js
+- src/modules/user-master/access/user-master.access.js
 
 Primary exported helpers:
 
@@ -128,7 +128,7 @@ Primary exported helpers:
 Example usage:
 
 ```js
-import { assertUserCanPerformAction } from "@/lib/userMasterAccess";
+import { assertUserCanPerformAction } from "@/modules/user-master/access/user-master.access";
 
 await assertUserCanPerformAction({
   userId: sessionUserId,

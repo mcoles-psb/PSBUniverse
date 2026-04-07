@@ -38,7 +38,15 @@ export async function GET(request) {
       .order(USER_MASTER_COLUMNS.roleId, { ascending: true });
 
     if (error) throw error;
-    return NextResponse.json({ roles: data || [] });
+    const roles = data || [];
+    return NextResponse.json({
+      success: true,
+      message: "Roles loaded",
+      data: {
+        roles,
+      },
+      roles,
+    });
   } catch (error) {
     return toErrorResponse(error?.message || "Unable to list roles", 500);
   }
@@ -63,7 +71,14 @@ export async function POST(request) {
       .single();
 
     if (error) throw error;
-    return NextResponse.json({ message: "Role created", role: data });
+    return NextResponse.json({
+      success: true,
+      message: "Role created",
+      data: {
+        role: data,
+      },
+      role: data,
+    });
   } catch (error) {
     return toErrorResponse(error?.message || "Unable to create role", 500);
   }
@@ -102,7 +117,14 @@ export async function PATCH(request) {
       .single();
 
     if (error) throw error;
-    return NextResponse.json({ message: "Role updated", role: data });
+    return NextResponse.json({
+      success: true,
+      message: "Role updated",
+      data: {
+        role: data,
+      },
+      role: data,
+    });
   } catch (error) {
     return toErrorResponse(error?.message || "Unable to update role", 500);
   }
@@ -131,7 +153,14 @@ export async function DELETE(request) {
       .eq(USER_MASTER_COLUMNS.roleId, roleId);
 
     if (error) throw error;
-    return NextResponse.json({ message: "Role deleted" });
+    return NextResponse.json({
+      success: true,
+      message: "Role deleted",
+      data: {
+        role_id: roleId,
+        deleted: true,
+      },
+    });
   } catch (error) {
     return toErrorResponse(error?.message || "Unable to delete role", 500);
   }

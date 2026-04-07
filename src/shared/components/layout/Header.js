@@ -60,6 +60,9 @@ export default function Header({
   onLogout,
   logoutBusy = false,
   showConfiguration = false,
+  onNavigateStart,
+  loaderProgress = 0,
+  loaderVisible = false,
 }) {
   const router = useRouter();
   const [greeting, setGreeting] = useState(() => getTimeGreeting());
@@ -128,7 +131,10 @@ export default function Header({
             size="sm"
             aria-label="Primary navigation"
             value={activeTab.href}
-            onChange={(event) => router.push(event.target.value)}
+            onChange={(event) => {
+              onNavigateStart?.();
+              router.push(event.target.value);
+            }}
           >
             {tabs.map((tab) => (
               <option key={tab.key} value={tab.href}>
@@ -143,6 +149,15 @@ export default function Header({
         <Button variant="outline-primary" size="sm" onClick={onLogout} disabled={logoutBusy}>
           {logoutBusy ? "Signing out..." : "Logout"}
         </Button>
+      </div>
+      <div className="app-header-progress-shell" aria-hidden="true">
+        <div
+          className="app-header-progress-bar"
+          style={{
+            transform: `scaleX(${loaderProgress})`,
+            opacity: loaderVisible ? 1 : 0,
+          }}
+        />
       </div>
     </header>
   );

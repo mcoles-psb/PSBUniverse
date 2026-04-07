@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Alert,
   Badge,
   Button,
   Card,
@@ -25,6 +24,8 @@ import {
   USER_MASTER_CACHE_KEYS,
   USER_MASTER_CACHE_TTL,
 } from "@/modules/user-master/cache/user-master.cache";
+import { toastError, toastInfo, toastSuccess, toastWarning } from "@/shared/utils/toast";
+import { startNavbarLoader } from "@/shared/utils/navbar-loader";
 
 const ADMIN_APP_KEY = "admin-config";
 
@@ -208,6 +209,27 @@ export default function AdminUserMasterPage() {
     setFeedback({ text, variant });
   }, []);
 
+  useEffect(() => {
+    if (!feedback?.text) return;
+
+    const message = String(feedback.text || "").trim();
+    const variant = String(feedback.variant || "info").toLowerCase();
+
+    if (!message) return;
+
+    if (variant === "success") {
+      toastSuccess(message, "Configuration & Settings");
+    } else if (variant === "danger" || variant === "error") {
+      toastError(message, "Configuration & Settings");
+    } else if (variant === "warning") {
+      toastWarning(message, "Configuration & Settings");
+    } else {
+      toastInfo(message, "Configuration & Settings");
+    }
+
+    setFeedback((prev) => ({ ...prev, text: "" }));
+  }, [feedback]);
+
   const loadData = useCallback(
     async (options = {}) => {
       const forceFresh = Boolean(options.forceFresh);
@@ -284,11 +306,127 @@ export default function AdminUserMasterPage() {
     });
 
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload?.error || `${method} failed`);
+    if (!response.ok || payload?.success === false) {
+      throw new Error(
+        payload?.message ||
+          payload?.error ||
+          payload?.details?.message ||
+          `${method} failed (${response.status})`
+      );
     }
+
     return payload;
   }
+
+  const upsertAccessMappingInState = useCallback((nextMapping) => {
+    if (!nextMapping || nextMapping.uar_id === null || nextMapping.uar_id === undefined) {
+      return;
+    }
+
+    setMappings((previous) => {
+      let found = false;
+      const next = previous.map((item) => {
+        if (String(item.uar_id) !== String(nextMapping.uar_id)) {
+          return item;
+        }
+
+        found = true;
+        return {
+          ...item,
+          ...nextMapping,
+        };
+      });
+
+      if (!found) {
+        return [nextMapping, ...next];
+      }
+
+      return next;
+    });
+  }, []);
+
+  const upsertUserInState = useCallback((nextUser) => {
+    if (!nextUser || nextUser.user_id === null || nextUser.user_id === undefined) {
+      return;
+    }
+
+    setUsers((previous) => {
+      let found = false;
+      const next = previous.map((item) => {
+        if (String(item.user_id) !== String(nextUser.user_id)) {
+          return item;
+        }
+
+        found = true;
+        return {
+          ...item,
+          ...nextUser,
+        };
+      });
+
+      if (!found) {
+        return [nextUser, ...next];
+      }
+
+      return next;
+    });
+  }, []);
+
+  const upsertRoleInState = useCallback((nextRole) => {
+    if (!nextRole || nextRole.role_id === null || nextRole.role_id === undefined) {
+      return;
+    }
+
+    setReferences((previous) => {
+      let found = false;
+      const nextRoles = (previous.roles || []).map((item) => {
+        if (String(item.role_id) !== String(nextRole.role_id)) {
+          return item;
+        }
+
+        found = true;
+        return {
+          ...item,
+          ...nextRole,
+        };
+      });
+
+      return {
+        ...previous,
+        roles: found ? nextRoles : [nextRole, ...nextRoles],
+      };
+    });
+  }, []);
+
+  const upsertApplicationInState = useCallback((nextApplication) => {
+    if (
+      !nextApplication ||
+      nextApplication.app_id === null ||
+      nextApplication.app_id === undefined
+    ) {
+      return;
+    }
+
+    setReferences((previous) => {
+      let found = false;
+      const nextApplications = (previous.applications || []).map((item) => {
+        if (String(item.app_id) !== String(nextApplication.app_id)) {
+          return item;
+        }
+
+        found = true;
+        return {
+          ...item,
+          ...nextApplication,
+        };
+      });
+
+      return {
+        ...previous,
+        applications: found ? nextApplications : [nextApplication, ...nextApplications],
+      };
+    });
+  }, []);
 
   async function handleLogout() {
     setBusy(true);
@@ -296,6 +434,7 @@ export default function AdminUserMasterPage() {
     try {
       await callApi("/api/auth/logout", "POST");
       clearSessionCache(ADMIN_APP_KEY);
+      startNavbarLoader();
       router.push("/login");
     } catch (error) {
       setError(error?.message || "Logout failed");
@@ -370,7 +509,7 @@ export default function AdminUserMasterPage() {
       };
 
       if (userModal.mode === "create") {
-        await callApi(
+        const payloadResponse = await callApi(
           `/api/user-master/admin/users?appKey=${encodeURIComponent(ADMIN_APP_KEY)}`,
           "POST",
           {
@@ -379,9 +518,14 @@ export default function AdminUserMasterPage() {
           }
         );
 
-        setInfo("User added.", "success");
+        const nextUser = payloadResponse?.data?.user || payloadResponse?.user;
+        if (nextUser) {
+          upsertUserInState(nextUser);
+        }
+
+        setInfo(payloadResponse?.message || "User added.", "success");
       } else {
-        await callApi(
+        const payloadResponse = await callApi(
           `/api/user-master/admin/users?appKey=${encodeURIComponent(ADMIN_APP_KEY)}`,
           "PATCH",
           {
@@ -391,12 +535,16 @@ export default function AdminUserMasterPage() {
           }
         );
 
-        setInfo("User updated.", "success");
+        const nextUser = payloadResponse?.data?.user || payloadResponse?.user;
+        if (nextUser) {
+          upsertUserInState(nextUser);
+        }
+
+        setInfo(payloadResponse?.message || "User updated.", "success");
       }
 
       closeUserModal();
       invalidateUserMasterCache([USER_MASTER_CACHE_KEYS.users, USER_MASTER_CACHE_KEYS.bootstrap]);
-      await loadData({ forceFresh: true });
     } catch (error) {
       setError(error?.message || "Unable to save user");
     } finally {
@@ -409,14 +557,24 @@ export default function AdminUserMasterPage() {
     setFeedback({ text: "", variant: "info" });
 
     try {
-      await callApi(
+      const payloadResponse = await callApi(
         `/api/user-master/admin/users?appKey=${encodeURIComponent(ADMIN_APP_KEY)}&user_id=${encodeURIComponent(userId)}`,
         "DELETE"
       );
 
+      const nextUser = payloadResponse?.data?.user || payloadResponse?.user;
+      if (nextUser) {
+        upsertUserInState(nextUser);
+      } else {
+        setUsers((previous) =>
+          previous.map((item) =>
+            String(item.user_id) === String(userId) ? { ...item, is_active: false } : item
+          )
+        );
+      }
+
       invalidateUserMasterCache([USER_MASTER_CACHE_KEYS.users]);
-      setInfo("User deactivated.", "success");
-      await loadData({ forceFresh: true });
+      setInfo(payloadResponse?.message || "User deactivated.", "success");
     } catch (error) {
       setError(error?.message || "Unable to deactivate user");
     } finally {
@@ -469,14 +627,20 @@ export default function AdminUserMasterPage() {
       };
 
       if (roleModal.mode === "create") {
-        await callApi(
+        const payloadResponse = await callApi(
           `/api/user-master/admin/roles?appKey=${encodeURIComponent(ADMIN_APP_KEY)}`,
           "POST",
           payload
         );
-        setInfo("Role added.", "success");
+
+        const nextRole = payloadResponse?.data?.role || payloadResponse?.role;
+        if (nextRole) {
+          upsertRoleInState(nextRole);
+        }
+
+        setInfo(payloadResponse?.message || "Role added.", "success");
       } else {
-        await callApi(
+        const payloadResponse = await callApi(
           `/api/user-master/admin/roles?appKey=${encodeURIComponent(ADMIN_APP_KEY)}`,
           "PATCH",
           {
@@ -484,12 +648,17 @@ export default function AdminUserMasterPage() {
             ...payload,
           }
         );
-        setInfo("Role updated.", "success");
+
+        const nextRole = payloadResponse?.data?.role || payloadResponse?.role;
+        if (nextRole) {
+          upsertRoleInState(nextRole);
+        }
+
+        setInfo(payloadResponse?.message || "Role updated.", "success");
       }
 
       closeRoleModal();
       invalidateUserMasterCache([USER_MASTER_CACHE_KEYS.bootstrap, USER_MASTER_CACHE_KEYS.mappings]);
-      await loadData({ forceFresh: true });
     } catch (error) {
       setError(error?.message || "Unable to save role");
     } finally {
@@ -502,7 +671,7 @@ export default function AdminUserMasterPage() {
     setFeedback({ text: "", variant: "info" });
 
     try {
-      await callApi(
+      const payloadResponse = await callApi(
         `/api/user-master/admin/roles?appKey=${encodeURIComponent(ADMIN_APP_KEY)}`,
         "PATCH",
         {
@@ -511,9 +680,20 @@ export default function AdminUserMasterPage() {
         }
       );
 
+      const nextRole = payloadResponse?.data?.role || payloadResponse?.role;
+      if (nextRole) {
+        upsertRoleInState(nextRole);
+      } else {
+        setReferences((previous) => ({
+          ...previous,
+          roles: (previous.roles || []).map((item) =>
+            String(item.role_id) === String(roleId) ? { ...item, is_active: false } : item
+          ),
+        }));
+      }
+
       invalidateUserMasterCache([USER_MASTER_CACHE_KEYS.bootstrap, USER_MASTER_CACHE_KEYS.mappings]);
-      setInfo("Role deactivated.", "success");
-      await loadData({ forceFresh: true });
+      setInfo(payloadResponse?.message || "Role deactivated.", "success");
     } catch (error) {
       setError(error?.message || "Unable to deactivate role");
     } finally {
@@ -566,14 +746,21 @@ export default function AdminUserMasterPage() {
       };
 
       if (applicationModal.mode === "create") {
-        await callApi(
+        const payloadResponse = await callApi(
           `/api/user-master/admin/applications?appKey=${encodeURIComponent(ADMIN_APP_KEY)}`,
           "POST",
           payload
         );
-        setInfo("Application added.", "success");
+
+        const nextApplication =
+          payloadResponse?.data?.application || payloadResponse?.application;
+        if (nextApplication) {
+          upsertApplicationInState(nextApplication);
+        }
+
+        setInfo(payloadResponse?.message || "Application added.", "success");
       } else {
-        await callApi(
+        const payloadResponse = await callApi(
           `/api/user-master/admin/applications?appKey=${encodeURIComponent(ADMIN_APP_KEY)}`,
           "PATCH",
           {
@@ -581,12 +768,18 @@ export default function AdminUserMasterPage() {
             ...payload,
           }
         );
-        setInfo("Application updated.", "success");
+
+        const nextApplication =
+          payloadResponse?.data?.application || payloadResponse?.application;
+        if (nextApplication) {
+          upsertApplicationInState(nextApplication);
+        }
+
+        setInfo(payloadResponse?.message || "Application updated.", "success");
       }
 
       closeApplicationModal();
       invalidateUserMasterCache([USER_MASTER_CACHE_KEYS.bootstrap, USER_MASTER_CACHE_KEYS.mappings]);
-      await loadData({ forceFresh: true });
     } catch (error) {
       setError(error?.message || "Unable to save application");
     } finally {
@@ -599,7 +792,7 @@ export default function AdminUserMasterPage() {
     setFeedback({ text: "", variant: "info" });
 
     try {
-      await callApi(
+      const payloadResponse = await callApi(
         `/api/user-master/admin/applications?appKey=${encodeURIComponent(ADMIN_APP_KEY)}`,
         "PATCH",
         {
@@ -608,9 +801,20 @@ export default function AdminUserMasterPage() {
         }
       );
 
+      const nextApplication = payloadResponse?.data?.application || payloadResponse?.application;
+      if (nextApplication) {
+        upsertApplicationInState(nextApplication);
+      } else {
+        setReferences((previous) => ({
+          ...previous,
+          applications: (previous.applications || []).map((item) =>
+            String(item.app_id) === String(appId) ? { ...item, is_active: false } : item
+          ),
+        }));
+      }
+
       invalidateUserMasterCache([USER_MASTER_CACHE_KEYS.bootstrap, USER_MASTER_CACHE_KEYS.mappings]);
-      setInfo("Application deactivated.", "success");
-      await loadData({ forceFresh: true });
+      setInfo(payloadResponse?.message || "Application deactivated.", "success");
     } catch (error) {
       setError(error?.message || "Unable to deactivate application");
     } finally {
@@ -665,22 +869,34 @@ export default function AdminUserMasterPage() {
       };
 
       if (accessModal.mode === "create") {
-        await callApi(
+        const payloadResponse = await callApi(
           `/api/user-master/admin/access-mappings?appKey=${encodeURIComponent(ADMIN_APP_KEY)}`,
           "POST",
           payload
         );
-        setInfo("Access mapping added.", "success");
+
+        const nextMapping = payloadResponse?.data?.mapping || payloadResponse?.mapping;
+        if (nextMapping) {
+          upsertAccessMappingInState(nextMapping);
+        }
+
+        setInfo(payloadResponse?.message || "Access mapping added.", "success");
       } else {
-        await callApi(
+        const payloadResponse = await callApi(
           `/api/user-master/admin/access-mappings?appKey=${encodeURIComponent(ADMIN_APP_KEY)}`,
           "PATCH",
           {
-            uar_id: draft.uar_id,
+            id: draft.uar_id,
             ...payload,
           }
         );
-        setInfo("Access mapping updated.", "success");
+
+        const nextMapping = payloadResponse?.data?.mapping || payloadResponse?.mapping;
+        if (nextMapping) {
+          upsertAccessMappingInState(nextMapping);
+        }
+
+        setInfo(payloadResponse?.message || "Access mapping updated.", "success");
       }
 
       closeAccessModal();
@@ -688,7 +904,6 @@ export default function AdminUserMasterPage() {
         USER_MASTER_CACHE_KEYS.mappings,
         USER_MASTER_CACHE_KEYS.access(ADMIN_APP_KEY),
       ]);
-      await loadData({ forceFresh: true });
     } catch (error) {
       setError(error?.message || "Unable to save access mapping");
     } finally {
@@ -701,21 +916,31 @@ export default function AdminUserMasterPage() {
     setFeedback({ text: "", variant: "info" });
 
     try {
-      await callApi(
+      const payloadResponse = await callApi(
         `/api/user-master/admin/access-mappings?appKey=${encodeURIComponent(ADMIN_APP_KEY)}`,
         "PATCH",
         {
-          uar_id: uarId,
+          id: uarId,
           is_active: false,
         }
       );
+
+      const nextMapping = payloadResponse?.data?.mapping || payloadResponse?.mapping;
+      if (nextMapping) {
+        upsertAccessMappingInState(nextMapping);
+      } else {
+        setMappings((previous) =>
+          previous.map((item) =>
+            String(item.uar_id) === String(uarId) ? { ...item, is_active: false } : item
+          )
+        );
+      }
 
       invalidateUserMasterCache([
         USER_MASTER_CACHE_KEYS.mappings,
         USER_MASTER_CACHE_KEYS.access(ADMIN_APP_KEY),
       ]);
-      setInfo("Access mapping deactivated.", "success");
-      await loadData({ forceFresh: true });
+      setInfo(payloadResponse?.message || "Access mapping deactivated.", "success");
     } catch (error) {
       setError(error?.message || "Unable to deactivate access mapping");
     } finally {
@@ -730,9 +955,9 @@ export default function AdminUserMasterPage() {
   if (access && !access.permissions?.read && !access.isDevMain) {
     return (
       <Container className="py-4" style={{ maxWidth: 980 }}>
-        <Alert variant="danger">
+        <div className="notice-banner notice-banner-danger">
           You do not have permission to access Configuration & Settings for app key {ADMIN_APP_KEY}.
-        </Alert>
+        </div>
       </Container>
     );
   }
@@ -746,31 +971,30 @@ export default function AdminUserMasterPage() {
           </Link>
           <div>
             <h2 className="mb-0">Configuration and Settings</h2>
-            <p className="text-muted mb-0" style={{ fontSize: "0.86rem" }}>
+            <p className="text-muted mb-0">
               Manage User Master setup by target table.
             </p>
           </div>
         </div>
         <div className="d-flex gap-2">
           <Button
+            type="button"
             variant="outline-secondary"
             onClick={() => loadData({ forceFresh: true })}
             disabled={busy}
           >
             Refresh
           </Button>
-          <Button variant="outline-danger" onClick={handleLogout} disabled={busy}>
+          <Button type="button" variant="outline-danger" onClick={handleLogout} disabled={busy}>
             Logout
           </Button>
         </div>
       </div>
 
-      {feedback.text ? <Alert variant={feedback.variant}>{feedback.text}</Alert> : null}
-
-      <Alert variant="light" className="border">
+      <div className="notice-banner notice-banner-muted mb-3">
         <strong>Session User:</strong> {session?.username || session?.email || "Unknown"} |{" "}
         <strong>Devmain:</strong> {access?.isDevMain ? "Yes" : "No"}
-      </Alert>
+      </div>
 
       <Tabs
         id="configuration-tabs"
@@ -782,7 +1006,7 @@ export default function AdminUserMasterPage() {
           <Card>
             <Card.Header className="d-flex align-items-center justify-content-between fw-bold">
               <span>Users (psb_s_user)</span>
-              <Button size="sm" onClick={openCreateUserModal} disabled={busy}>
+              <Button type="button" size="sm" onClick={openCreateUserModal} disabled={busy}>
                 Add User
               </Button>
             </Card.Header>
@@ -825,6 +1049,7 @@ export default function AdminUserMasterPage() {
                           <td>
                             <div className="d-flex gap-1">
                               <Button
+                                  type="button"
                                 size="sm"
                                 variant="outline-primary"
                                 onClick={() => openEditUserModal(user)}
@@ -833,6 +1058,7 @@ export default function AdminUserMasterPage() {
                                 Edit
                               </Button>
                               <Button
+                                type="button"
                                 size="sm"
                                 variant="outline-danger"
                                 onClick={() => deactivateUser(user.user_id)}
@@ -856,7 +1082,7 @@ export default function AdminUserMasterPage() {
           <Card>
             <Card.Header className="d-flex align-items-center justify-content-between fw-bold">
               <span>Roles (psb_s_role)</span>
-              <Button size="sm" onClick={openCreateRoleModal} disabled={busy}>
+              <Button type="button" size="sm" onClick={openCreateRoleModal} disabled={busy}>
                 Add Role
               </Button>
             </Card.Header>
@@ -885,6 +1111,7 @@ export default function AdminUserMasterPage() {
                       <td>
                         <div className="d-flex gap-1">
                           <Button
+                            type="button"
                             size="sm"
                             variant="outline-primary"
                             onClick={() => openEditRoleModal(role)}
@@ -893,6 +1120,7 @@ export default function AdminUserMasterPage() {
                             Edit
                           </Button>
                           <Button
+                            type="button"
                             size="sm"
                             variant="outline-danger"
                             onClick={() => deactivateRole(role.role_id)}
@@ -914,7 +1142,7 @@ export default function AdminUserMasterPage() {
           <Card>
             <Card.Header className="d-flex align-items-center justify-content-between fw-bold">
               <span>Applications (psb_s_application)</span>
-              <Button size="sm" onClick={openCreateApplicationModal} disabled={busy}>
+              <Button type="button" size="sm" onClick={openCreateApplicationModal} disabled={busy}>
                 Add Application
               </Button>
             </Card.Header>
@@ -943,6 +1171,7 @@ export default function AdminUserMasterPage() {
                       <td>
                         <div className="d-flex gap-1">
                           <Button
+                            type="button"
                             size="sm"
                             variant="outline-primary"
                             onClick={() => openEditApplicationModal(application)}
@@ -951,6 +1180,7 @@ export default function AdminUserMasterPage() {
                             Edit
                           </Button>
                           <Button
+                            type="button"
                             size="sm"
                             variant="outline-danger"
                             onClick={() => deactivateApplication(application.app_id)}
@@ -972,7 +1202,7 @@ export default function AdminUserMasterPage() {
           <Card>
             <Card.Header className="d-flex align-items-center justify-content-between fw-bold">
               <span>Access Mappings (psb_m_userapproleaccess)</span>
-              <Button size="sm" onClick={openCreateAccessModal} disabled={busy}>
+              <Button type="button" size="sm" onClick={openCreateAccessModal} disabled={busy}>
                 Add Access
               </Button>
             </Card.Header>
@@ -1018,6 +1248,7 @@ export default function AdminUserMasterPage() {
                           <td>
                             <div className="d-flex gap-1">
                               <Button
+                                type="button"
                                 size="sm"
                                 variant="outline-primary"
                                 onClick={() => openEditAccessModal(mapping)}
@@ -1026,6 +1257,7 @@ export default function AdminUserMasterPage() {
                                 Edit
                               </Button>
                               <Button
+                                type="button"
                                 size="sm"
                                 variant="outline-danger"
                                 onClick={() => deactivateAccessMapping(mapping.uar_id)}
@@ -1254,7 +1486,7 @@ export default function AdminUserMasterPage() {
             </Row>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="outline-secondary" onClick={closeUserModal} disabled={busy}>
+            <Button type="button" variant="outline-secondary" onClick={closeUserModal} disabled={busy}>
               Cancel
             </Button>
             <Button type="submit" disabled={busy}>
@@ -1309,7 +1541,7 @@ export default function AdminUserMasterPage() {
             />
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="outline-secondary" onClick={closeRoleModal} disabled={busy}>
+            <Button type="button" variant="outline-secondary" onClick={closeRoleModal} disabled={busy}>
               Cancel
             </Button>
             <Button type="submit" disabled={busy}>
@@ -1366,7 +1598,7 @@ export default function AdminUserMasterPage() {
             />
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="outline-secondary" onClick={closeApplicationModal} disabled={busy}>
+            <Button type="button" variant="outline-secondary" onClick={closeApplicationModal} disabled={busy}>
               Cancel
             </Button>
             <Button type="submit" disabled={busy}>
@@ -1461,7 +1693,7 @@ export default function AdminUserMasterPage() {
             />
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="outline-secondary" onClick={closeAccessModal} disabled={busy}>
+            <Button type="button" variant="outline-secondary" onClick={closeAccessModal} disabled={busy}>
               Cancel
             </Button>
             <Button type="submit" disabled={busy}>

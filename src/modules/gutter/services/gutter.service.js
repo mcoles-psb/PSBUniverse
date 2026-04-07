@@ -102,7 +102,7 @@ function rateMaps(setup) {
   });
 
   (setup?.discounts || []).forEach((item) => {
-    addKey(discountRates, item.id, item.percent);
+    addKey(discountRates, item.id, normalizePercentRate(item.percent));
   });
 
   return {
@@ -226,14 +226,16 @@ export function calculateQuote(project, setup) {
   const rawCustomManufacturerRate = project?.cstmManufacturerRate ?? project?.cstm_manufacturer_rate;
   const hasCustomManufacturerRate = hasValue(rawCustomManufacturerRate);
   const customManufacturerRate = hasCustomManufacturerRate ? asNumber(rawCustomManufacturerRate) : null;
+  const hasManualManufacturerToggle =
+    project?.manualManufacturerRateEnabled === true || project?.manualManufacturerRateEnabled === false;
   const manualManufacturerRateEnabled = Boolean(project?.manualManufacturerRateEnabled);
   const hasManualManufacturerRate = hasValue(project?.manualManufacturerRate);
   const manualManufacturerRate = hasManualManufacturerRate ? asNumber(project.manualManufacturerRate) : null;
-  const manufacturerRate =
-    customManufacturerRate ??
-    (manualManufacturerRateEnabled && manualManufacturerRate !== null
+  const manufacturerRate = hasManualManufacturerToggle
+    ? manualManufacturerRateEnabled && manualManufacturerRate !== null
       ? manualManufacturerRate
-      : setupManufacturerRate);
+      : setupManufacturerRate
+    : customManufacturerRate ?? setupManufacturerRate;
 
   // Leaf guard rate resolution
   const leafGuardKey = project.leafGuardId ?? project.leafGuard;
@@ -241,14 +243,16 @@ export function calculateQuote(project, setup) {
   const rawCustomLeafGuardRate = project?.cstmLeafGuardPrice ?? project?.cstm_leaf_guard_price;
   const hasCustomLeafGuardRate = hasValue(rawCustomLeafGuardRate);
   const customLeafGuardRate = hasCustomLeafGuardRate ? asNumber(rawCustomLeafGuardRate) : null;
+  const hasManualLeafGuardToggle =
+    project?.manualLeafGuardRateEnabled === true || project?.manualLeafGuardRateEnabled === false;
   const manualLeafGuardRateEnabled = Boolean(project?.manualLeafGuardRateEnabled);
   const hasManualLeafGuardRate = hasValue(project?.manualLeafGuardRate);
   const manualLeafGuardRate = hasManualLeafGuardRate ? asNumber(project.manualLeafGuardRate) : null;
-  const leafGuardUnitPrice =
-    customLeafGuardRate ??
-    (manualLeafGuardRateEnabled && manualLeafGuardRate !== null
+  const leafGuardUnitPrice = hasManualLeafGuardToggle
+    ? manualLeafGuardRateEnabled && manualLeafGuardRate !== null
       ? manualLeafGuardRate
-      : setupLeafGuardUnitPrice);
+      : setupLeafGuardUnitPrice
+    : customLeafGuardRate ?? setupLeafGuardUnitPrice;
 
   // Trip fee rate resolution
   const tripKey = project.tripId ?? project.tripFeeKey;
@@ -256,14 +260,15 @@ export function calculateQuote(project, setup) {
   const rawCustomTripRate = project?.cstmTripRate ?? project?.cstm_trip_rate;
   const hasCustomTripRate = hasValue(rawCustomTripRate);
   const customTripRate = hasCustomTripRate ? asNumber(rawCustomTripRate) : null;
+  const hasManualTripToggle = project?.manualTripRateEnabled === true || project?.manualTripRateEnabled === false;
   const manualTripRateEnabled = Boolean(project?.manualTripRateEnabled);
   const hasManualTripRate = hasValue(project?.manualTripRate);
   const manualTripRate = hasManualTripRate ? asNumber(project.manualTripRate) : null;
-  const tripFeeLookup =
-    customTripRate ??
-    (manualTripRateEnabled && manualTripRate !== null
+  const tripFeeLookup = hasManualTripToggle
+    ? manualTripRateEnabled && manualTripRate !== null
       ? manualTripRate
-      : setupTripFeeRate);
+      : setupTripFeeRate
+    : customTripRate ?? setupTripFeeRate;
 
   const downspoutUnitPrice = asNumber(project.downspoutUnitPrice);
   const downspoutPipeLength = asNumber(project.downspoutPipeLength);
@@ -318,15 +323,43 @@ export function calculateQuote(project, setup) {
   const setupDiscountPercent = rates.discountRates[String(project.discountId)] ?? 0;
   const rawCustomDiscountPercent = project?.cstmDiscountPercentage ?? project?.cstm_discount_percentage;
   const hasCustomDiscountPercent = hasValue(rawCustomDiscountPercent);
-  const customDiscountPercent = hasCustomDiscountPercent ? asNumber(rawCustomDiscountPercent) : null;
-  const shouldApplyDiscount = Boolean(
-    project.discountIncluded || hasValue(project.discountId) || hasCustomDiscountPercent
-  );
+  const customDiscountPercent = hasCustomDiscountPercent
+    ? normalizePercentRate(rawCustomDiscountPercent)
+    : null;
+  const hasManualDiscountToggle =
+    project?.manualDiscountRateEnabled === true || project?.manualDiscountRateEnabled === false;
+  const manualDiscountRateEnabled = Boolean(project?.manualDiscountRateEnabled);
+  const hasManualDiscountPercent = hasValue(project?.manualDiscountPercent);
+  const manualDiscountPercent = hasManualDiscountPercent
+    ? normalizePercentRate(project.manualDiscountPercent)
+    : null;
+  const shouldApplyDiscount = hasManualDiscountToggle
+    ? Boolean(
+        project.discountIncluded ||
+          hasValue(project.discountId) ||
+          (manualDiscountRateEnabled && hasManualDiscountPercent)
+      )
+    : Boolean(
+        project.discountIncluded ||
+          hasValue(project.discountId) ||
+          hasCustomDiscountPercent ||
+          (manualDiscountRateEnabled && hasManualDiscountPercent)
+      );
   const rawDiscountPercent = shouldApplyDiscount
-    ? customDiscountPercent ??
-      (hasValue(project.discountPercent) ? asNumber(project.discountPercent) : setupDiscountPercent)
+    ? hasManualDiscountToggle
+      ? (manualDiscountRateEnabled && manualDiscountPercent !== null
+          ? manualDiscountPercent
+          : hasValue(project.discountPercent)
+            ? normalizePercentRate(project.discountPercent)
+            : setupDiscountPercent)
+      : customDiscountPercent ??
+        (manualDiscountRateEnabled && manualDiscountPercent !== null
+          ? manualDiscountPercent
+          : hasValue(project.discountPercent)
+            ? normalizePercentRate(project.discountPercent)
+            : setupDiscountPercent)
     : 0;
-  const discountPercent = Math.min(1, Math.max(0, rawDiscountPercent));
+  const discountPercent = clamp(rawDiscountPercent, 0, 1);
 
   const subtotal =
     materialCost +
@@ -395,6 +428,8 @@ export function calculateQuote(project, setup) {
       subtotal,
       setupDiscountPercent,
       customDiscountPercent,
+      manualDiscountRateEnabled,
+      manualDiscountPercent,
       discountPercent,
       discountAmount,
       projectTotal,

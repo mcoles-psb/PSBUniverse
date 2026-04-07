@@ -16,6 +16,12 @@ function hasValue(value) {
   return value !== undefined && value !== null && String(value).trim() !== "";
 }
 
+function toBooleanFlag(value) {
+  if (value === false || value === 0 || value === "0") return false;
+  if (typeof value === "string" && value.trim().toLowerCase() === "false") return false;
+  return Boolean(value);
+}
+
 function getAdminAppKey(request) {
   const { searchParams } = new URL(request.url);
   return (
@@ -110,6 +116,8 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
+  let requestedDeactivate = false;
+
   try {
     const gate = await requireActionPermission({
       action: "update",
@@ -120,21 +128,56 @@ export async function PATCH(request) {
     if (gate.error) return gate.error;
 
     const body = await request.json();
-    const uarId = body?.uar_id ?? body?.uarId;
+    const uarId = body?.id ?? body?.uar_id ?? body?.uarId;
 
     if (!hasValue(uarId)) {
-      return toErrorResponse("uar_id is required", 400);
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Cannot update access mapping: id is required",
+          error: "Cannot update access mapping: id is required",
+        },
+        { status: 400 }
+      );
     }
 
     const updates = {};
-    ["user_id", "role_id", "app_id", "is_active"].forEach((field) => {
-      if (Object.prototype.hasOwnProperty.call(body || {}, field)) {
-        updates[field] = body[field];
+    const idFieldMap = [
+      ["user_id", "user_id"],
+      ["userId", "user_id"],
+      ["role_id", "role_id"],
+      ["roleId", "role_id"],
+      ["app_id", "app_id"],
+      ["appId", "app_id"],
+    ];
+
+    idFieldMap.forEach(([sourceField, targetField]) => {
+      if (Object.prototype.hasOwnProperty.call(body || {}, sourceField)) {
+        updates[targetField] = body[sourceField];
       }
     });
 
+    if (
+      Object.prototype.hasOwnProperty.call(body || {}, "is_active") ||
+      Object.prototype.hasOwnProperty.call(body || {}, "isActive")
+    ) {
+      const nextActiveValue = Object.prototype.hasOwnProperty.call(body || {}, "is_active")
+        ? body.is_active
+        : body.isActive;
+
+      updates.is_active = toBooleanFlag(nextActiveValue);
+      requestedDeactivate = updates.is_active === false;
+    }
+
     if (Object.keys(updates).length === 0) {
-      return toErrorResponse("No mapping update fields were provided", 400);
+      return NextResponse.json(
+        {
+          success: false,
+          message: "No mapping update fields were provided",
+          error: "No mapping update fields were provided",
+        },
+        { status: 400 }
+      );
     }
 
     const { data: existing, error: existingError } = await gate.context.supabaseClient
@@ -145,7 +188,14 @@ export async function PATCH(request) {
 
     if (existingError) throw existingError;
     if (!existing) {
-      return toErrorResponse("Mapping not found", 404);
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Cannot update access mapping: invalid ID",
+          error: "Cannot update access mapping: invalid ID",
+        },
+        { status: 404 }
+      );
     }
 
     const nextUserId = updates.user_id ?? existing.user_id;
@@ -158,21 +208,58 @@ export async function PATCH(request) {
       app_id: nextAppId,
     });
 
+    const actorUserId = gate.context.userRecord[USER_MASTER_COLUMNS.userId];
+    const updatePayload = {
+      ...updates,
+      updated_at: new Date().toISOString(),
+      updated_by: actorUserId,
+    };
+
     const { data, error } = await gate.context.supabaseClient
       .from(USER_MASTER_TABLES.userAppRoleAccess)
-      .update(updates)
+      .update(updatePayload)
       .eq("uar_id", uarId)
       .select("*")
       .single();
 
     if (error) throw error;
 
+    const deactivated = data?.is_active === false;
+    const successMessage = deactivated
+      ? "Access mapping deactivated"
+      : "Access mapping updated";
+
     return NextResponse.json({
-      message: "Access mapping updated",
+      success: true,
+      message: successMessage,
+      data: {
+        id: data?.uar_id,
+        is_active: data?.is_active,
+        mapping: data,
+      },
       mapping: data,
     });
   } catch (error) {
-    return toErrorResponse(error?.message || "Unable to update access mapping", 500);
+    console.error("Access mappings PATCH failed", error);
+
+    const baseMessage = requestedDeactivate
+      ? "Cannot deactivate: record is referenced or invalid ID"
+      : "Unable to update access mapping";
+
+    const message = error?.message
+      ? requestedDeactivate
+        ? `Cannot deactivate: ${error.message}`
+        : error.message
+      : baseMessage;
+
+    return NextResponse.json(
+      {
+        success: false,
+        message,
+        error: message,
+      },
+      { status: 500 }
+    );
   }
 }
 

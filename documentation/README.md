@@ -2,6 +2,13 @@
 
 This folder contains full project documentation for PSBUniverse, organized by platform, shared libraries, and application pages.
 
+## Current UI Standards
+
+- Compact density layout is the default across the app (`dense-workspace` on root layout).
+- Global toast notifications are the default for save/load feedback.
+- Navbar bottom progress bar is the default loading indicator for route/API/background activity in protected pages.
+- Avoid inline dynamic alert blocks for request feedback.
+
 ## Core
 
 - [Project Overview](./project-overview.md)

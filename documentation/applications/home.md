@@ -26,3 +26,4 @@ Provides the main navigation dashboard for operational modules and setup pages.
 - Built as a client component.
 - Uses React-Bootstrap cards and grid layout.
 - Reads no live database data.
+- Inherits global compact-density typography/spacing defaults.

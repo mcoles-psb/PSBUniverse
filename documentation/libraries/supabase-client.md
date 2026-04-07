@@ -1,6 +1,6 @@
 # Supabase Client Library
 
-File: src/lib/supabase.js
+File: src/infrastructure/supabase/client.js
 
 ## Purpose
 
@@ -13,7 +13,7 @@ Creates and exports a shared Supabase client instance for browser-side use.
 
 ## Usage
 
-Import the singleton client from src/lib/supabase.js in application pages or helper libraries.
+Import the singleton client from src/infrastructure/supabase/client.js in application pages or helper libraries.
 
 ## Notes
 

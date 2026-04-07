@@ -2,7 +2,7 @@
 
 File:
 
-- src/lib/userMasterAccess.js
+- src/modules/user-master/access/user-master.access.js
 
 ## Purpose
 
@@ -39,7 +39,7 @@ Provide centralized helper functions for:
 ## Example
 
 ```js
-import { resolveUserRoleAccess } from "@/lib/userMasterAccess";
+import { resolveUserRoleAccess } from "@/modules/user-master/access/user-master.access";
 
 const access = await resolveUserRoleAccess({
   userId,

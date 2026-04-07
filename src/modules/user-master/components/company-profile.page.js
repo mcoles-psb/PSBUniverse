@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Container, Card, Form, Button, Row, Col, Alert } from "react-bootstrap";
+import { Container, Card, Form, Button, Row, Col } from "react-bootstrap";
 import { supabase } from "@/infrastructure/supabase/client";
 import { createCacheKey, invalidateCacheKeys } from "@/core/cache";
 import { getSupabaseSelectWithCache } from "@/core/cache";
+import { toastError, toastSuccess } from "@/shared/utils/toast";
 
 const CACHE_NAMESPACE = "psb-universe";
 const CACHE_KEYS = {
@@ -22,7 +23,6 @@ export default function CompanyProfilePage() {
     phone: "",
   });
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
 
   async function loadProfile(options = {}) {
     const forceFresh = Boolean(options.forceFresh);
@@ -56,7 +56,7 @@ export default function CompanyProfilePage() {
       }
     } catch (error) {
       console.error("Failed to load company profile", error);
-      setMessage("Error loading profile.");
+      toastError("Error loading profile.", "Company Profile");
     }
   }
 
@@ -70,7 +70,6 @@ export default function CompanyProfilePage() {
 
   const saveProfile = async () => {
     setSaving(true);
-    setMessage("");
 
     const payload = {
       comp_name: profile.name || "Premium Steel Buildings Inc",
@@ -88,7 +87,7 @@ export default function CompanyProfilePage() {
         .eq("comp_id", companyId);
 
       if (error) {
-        setMessage("Error saving: " + error.message);
+        toastError("Error saving: " + error.message, "Company Profile");
         setSaving(false);
         return;
       }
@@ -101,7 +100,7 @@ export default function CompanyProfilePage() {
         });
 
       if (error) {
-        setMessage("Error saving: " + error.message);
+        toastError("Error saving: " + error.message, "Company Profile");
         setSaving(false);
         return;
       }
@@ -112,7 +111,7 @@ export default function CompanyProfilePage() {
     });
     await loadProfile({ forceFresh: true });
 
-    setMessage("Profile saved.");
+    toastSuccess("Profile saved.", "Company Profile");
     setSaving(false);
   };
 
@@ -124,21 +123,11 @@ export default function CompanyProfilePage() {
         </Link>
         <div>
           <h2 className="mb-0">Company Profile</h2>
-          <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
+          <p className="text-muted mb-0">
             Update company contact details used across the app
           </p>
         </div>
       </div>
-
-      {message && (
-        <Alert
-          variant={message.includes("Error") ? "danger" : "success"}
-          dismissible
-          onClose={() => setMessage("")}
-        >
-          {message}
-        </Alert>
-      )}
 
       <Card>
         <Card.Body>

@@ -76,8 +76,15 @@ export async function GET(request) {
       limit: searchParams.get("limit") || undefined,
     });
 
+    const safeUsers = users.map((record) => sanitizeUserRecord(record));
+
     return NextResponse.json({
-      users: users.map((record) => sanitizeUserRecord(record)),
+      success: true,
+      message: "Users loaded",
+      data: {
+        users: safeUsers,
+      },
+      users: safeUsers,
     });
   } catch (error) {
     return toErrorResponse(error?.message || "Unable to list users", 500);
@@ -121,9 +128,15 @@ export async function POST(request) {
       supabaseClient: gate.context.supabaseClient,
     });
 
+    const safeUser = sanitizeUserRecord(created);
+
     return NextResponse.json({
+      success: true,
       message: "User created",
-      user: sanitizeUserRecord(created),
+      data: {
+        user: safeUser,
+      },
+      user: safeUser,
     });
   } catch (error) {
     return toErrorResponse(error?.message || "Unable to create user", 500);
@@ -181,9 +194,15 @@ export async function PATCH(request) {
       supabaseClient: gate.context.supabaseClient,
     });
 
+    const safeUser = sanitizeUserRecord(updated);
+
     return NextResponse.json({
+      success: true,
       message: "User updated",
-      user: sanitizeUserRecord(updated),
+      data: {
+        user: safeUser,
+      },
+      user: safeUser,
     });
   } catch (error) {
     return toErrorResponse(error?.message || "Unable to update user", 500);
@@ -221,7 +240,14 @@ export async function DELETE(request) {
 
       if (error) throw error;
 
-      return NextResponse.json({ message: "User deleted" });
+      return NextResponse.json({
+        success: true,
+        message: "User deleted",
+        data: {
+          user_id: userId,
+          deleted: true,
+        },
+      });
     }
 
     const updated = await updateUserAccount({
@@ -231,9 +257,15 @@ export async function DELETE(request) {
       supabaseClient: gate.context.supabaseClient,
     });
 
+    const safeUser = sanitizeUserRecord(updated);
+
     return NextResponse.json({
+      success: true,
       message: "User deactivated",
-      user: sanitizeUserRecord(updated),
+      data: {
+        user: safeUser,
+      },
+      user: safeUser,
     });
   } catch (error) {
     return toErrorResponse(error?.message || "Unable to delete/deactivate user", 500);

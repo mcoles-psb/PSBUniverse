@@ -22,3 +22,5 @@ When these modules move beyond placeholder state, add:
 - Route-level functional docs
 - Data model mapping
 - Cache key plan and invalidation map
+- Compact-density UI alignment (same standards as active modules)
+- Global toast feedback for dynamic request outcomes
