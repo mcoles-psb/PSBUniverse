@@ -37,6 +37,7 @@ export async function GET(request) {
       action: "read",
       appKey: getAdminAppKey(request),
       rolePermissionMap: ADMIN_ROLE_PERMISSION_MAP,
+      requiredRoleKey: "devmain",
     });
 
     if (gate.error) return gate.error;
@@ -75,6 +76,7 @@ export async function POST(request) {
       action: "create",
       appKey: getAdminAppKey(request),
       rolePermissionMap: ADMIN_ROLE_PERMISSION_MAP,
+      requiredRoleKey: "devmain",
     });
 
     if (gate.error) return gate.error;
@@ -123,6 +125,7 @@ export async function PATCH(request) {
       action: "update",
       appKey: getAdminAppKey(request),
       rolePermissionMap: ADMIN_ROLE_PERMISSION_MAP,
+      requiredRoleKey: "devmain",
     });
 
     if (gate.error) return gate.error;
@@ -269,17 +272,37 @@ export async function DELETE(request) {
       action: "delete",
       appKey: getAdminAppKey(request),
       rolePermissionMap: ADMIN_ROLE_PERMISSION_MAP,
+      requiredRoleKey: "devmain",
     });
 
     if (gate.error) return gate.error;
 
     const { searchParams } = new URL(request.url);
+    const mappingId = searchParams.get("id") || searchParams.get("uar_id") || searchParams.get("uarId");
     const userId = searchParams.get("user_id") || searchParams.get("userId");
     const roleId = searchParams.get("role_id") || searchParams.get("roleId");
     const appId = searchParams.get("app_id") || searchParams.get("appId");
 
+    if (hasValue(mappingId)) {
+      const { error } = await gate.context.supabaseClient
+        .from(USER_MASTER_TABLES.userAppRoleAccess)
+        .delete()
+        .eq("uar_id", mappingId);
+
+      if (error) throw error;
+
+      return NextResponse.json({
+        success: true,
+        message: "Access mapping removed",
+        data: {
+          uar_id: mappingId,
+          deleted: true,
+        },
+      });
+    }
+
     if (!hasValue(userId) || !hasValue(roleId) || !hasValue(appId)) {
-      return toErrorResponse("user_id, role_id, and app_id are required", 400);
+      return toErrorResponse("id or user_id, role_id, and app_id are required", 400);
     }
 
     await removeUserAppRoleAccess({
@@ -289,7 +312,16 @@ export async function DELETE(request) {
       supabaseClient: gate.context.supabaseClient,
     });
 
-    return NextResponse.json({ message: "Access mapping deleted" });
+    return NextResponse.json({
+      success: true,
+      message: "Access mapping deleted",
+      data: {
+        user_id: userId,
+        role_id: roleId,
+        app_id: appId,
+        deleted: true,
+      },
+    });
   } catch (error) {
     return toErrorResponse(error?.message || "Unable to delete access mapping", 500);
   }

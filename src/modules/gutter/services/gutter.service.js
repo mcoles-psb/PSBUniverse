@@ -115,7 +115,7 @@ function rateMaps(setup) {
 
 /**
  * Calculates gutter quantity from side count and run length.
- * Formula: (sides + length) + CONST_GUTTER_EXTRA.
+ * Formula: (sides * length) + CONST_GUTTER_EXTRA.
  */
 export function computeGutterQty(sides, length) {
   const segmentCountRaw = asNumber(sides);
@@ -130,8 +130,8 @@ export function computeGutterQty(sides, length) {
     CONST_MAX_SIDE_COUNT
   );
 
-  // Spec formula: gutter = (segments + length) + allowance.
-  return segmentCount + runLength + CONST_GUTTER_EXTRA;
+  // Spec formula: gutter = (segments * length) + allowance.
+  return segmentCount * runLength + CONST_GUTTER_EXTRA;
 }
 
 /**
@@ -270,8 +270,6 @@ export function calculateQuote(project, setup) {
       : setupTripFeeRate
     : customTripRate ?? setupTripFeeRate;
 
-  const downspoutUnitPrice = asNumber(project.downspoutUnitPrice);
-  const downspoutPipeLength = asNumber(project.downspoutPipeLength);
   const hangerRate = asNumber(project.hangerRate);
   const tripHours = asNumber(project.tripHours);
   const tripHourlyRate = asNumber(project.tripHourlyRate);
@@ -300,23 +298,19 @@ export function calculateQuote(project, setup) {
   const materialCost = totalGutter * manufacturerRate;
   const sectionGutterPrices = gutterQuantities.map((qty) => asNumber(qty) * manufacturerRate);
 
-  // Downspouts can be sold by piece length or by direct unit price when no piece length is provided.
-  const downspoutPieces =
-    downspoutPipeLength > 0 ? Math.ceil(totalDownspouts / downspoutPipeLength) : 0;
-  const downspoutCostByPiece = downspoutPieces * downspoutUnitPrice;
-  const downspoutCost =
-    downspoutPipeLength > 0
-      ? downspoutCostByPiece
-      : totalDownspouts * downspoutUnitPrice;
+  // Downspout pricing follows the gutter manufacturer LF rate.
+  const downspoutPieces = 0;
+  const downspoutCostByPiece = 0;
+  const downspoutCost = totalDownspouts * manufacturerRate;
   const sectionDownspoutPrices = downspoutFootages.map((qty) =>
-    totalDownspouts > 0 ? (asNumber(qty) / totalDownspouts) * downspoutCost : 0
+    asNumber(qty) * manufacturerRate
   );
 
   const hangerCost = totalGutter * hangerRate;
   const shouldApplyLeafGuard = Boolean(
     project.leafGuardIncluded || hasValue(project.leafGuardId) || hasCustomLeafGuardRate
   );
-  const leafGuardCost = shouldApplyLeafGuard ? totalGutter * leafGuardUnitPrice : 0;
+  const leafGuardCost = shouldApplyLeafGuard ? leafGuardUnitPrice : 0;
   const extrasPrice = project.extrasIncluded
     ? sum((project.extras || []).map((item) => asNumber(item.qty) * asNumber(item.unitPrice)))
     : 0;

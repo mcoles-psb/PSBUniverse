@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import {
   USER_MASTER_COLUMNS,
   USER_MASTER_TABLES,
@@ -34,22 +34,24 @@ export async function GET(request) {
     if (gate.error) return gate.error;
 
     const { data, error } = await gate.context.supabaseClient
-      .from(USER_MASTER_TABLES.applications)
+      .from(USER_MASTER_TABLES.statuses)
       .select("*")
-      .order(USER_MASTER_COLUMNS.appId, { ascending: true });
+      .like("sts_desc", "psb_%")
+      .order(USER_MASTER_COLUMNS.statusId, { ascending: true });
 
     if (error) throw error;
-    const applications = data || [];
+
+    const statuses = data || [];
     return NextResponse.json({
       success: true,
-      message: "Applications loaded",
+      message: "Statuses loaded",
       data: {
-        applications,
+        statuses,
       },
-      applications,
+      statuses,
     });
   } catch (error) {
-    return toErrorResponse(error?.message || "Unable to list applications", 500);
+    return toErrorResponse(error?.message || "Unable to list statuses", 500);
   }
 }
 
@@ -67,22 +69,23 @@ export async function POST(request) {
     const body = await request.json();
 
     const { data, error } = await gate.context.supabaseClient
-      .from(USER_MASTER_TABLES.applications)
+      .from(USER_MASTER_TABLES.statuses)
       .insert(body)
       .select("*")
       .single();
 
     if (error) throw error;
+
     return NextResponse.json({
       success: true,
-      message: "Application created",
+      message: "Status created",
       data: {
-        application: data,
+        status: data,
       },
-      application: data,
+      status: data,
     });
   } catch (error) {
-    return toErrorResponse(error?.message || "Unable to create application", 500);
+    return toErrorResponse(error?.message || "Unable to create status", 500);
   }
 }
 
@@ -98,38 +101,39 @@ export async function PATCH(request) {
     if (gate.error) return gate.error;
 
     const body = await request.json();
-    const appId = body?.app_id ?? body?.appId;
+    const statusId = body?.status_id ?? body?.statusId;
 
-    if (!hasValue(appId)) {
-      return toErrorResponse("app_id is required", 400);
+    if (!hasValue(statusId)) {
+      return toErrorResponse("status_id is required", 400);
     }
 
     const updates = { ...body };
-    delete updates.app_id;
-    delete updates.appId;
+    delete updates.status_id;
+    delete updates.statusId;
 
     if (Object.keys(updates).length === 0) {
-      return toErrorResponse("No application update fields were provided", 400);
+      return toErrorResponse("No status update fields were provided", 400);
     }
 
     const { data, error } = await gate.context.supabaseClient
-      .from(USER_MASTER_TABLES.applications)
+      .from(USER_MASTER_TABLES.statuses)
       .update(updates)
-      .eq(USER_MASTER_COLUMNS.appId, appId)
+      .eq(USER_MASTER_COLUMNS.statusId, statusId)
       .select("*")
       .single();
 
     if (error) throw error;
+
     return NextResponse.json({
       success: true,
-      message: "Application updated",
+      message: "Status updated",
       data: {
-        application: data,
+        status: data,
       },
-      application: data,
+      status: data,
     });
   } catch (error) {
-    return toErrorResponse(error?.message || "Unable to update application", 500);
+    return toErrorResponse(error?.message || "Unable to update status", 500);
   }
 }
 
@@ -145,16 +149,16 @@ export async function DELETE(request) {
     if (gate.error) return gate.error;
 
     const { searchParams } = new URL(request.url);
-    const appId = searchParams.get("app_id") || searchParams.get("appId");
+    const statusId = searchParams.get("status_id") || searchParams.get("statusId");
 
-    if (!hasValue(appId)) {
-      return toErrorResponse("app_id is required", 400);
+    if (!hasValue(statusId)) {
+      return toErrorResponse("status_id is required", 400);
     }
 
     const { error } = await gate.context.supabaseClient
-      .from(USER_MASTER_TABLES.applications)
+      .from(USER_MASTER_TABLES.statuses)
       .delete()
-      .eq(USER_MASTER_COLUMNS.appId, appId);
+      .eq(USER_MASTER_COLUMNS.statusId, statusId);
 
     if (error) {
       if (String(error?.code || "") === "23503") {
@@ -163,17 +167,16 @@ export async function DELETE(request) {
 
       throw error;
     }
+
     return NextResponse.json({
       success: true,
-      message: "Application deleted",
+      message: "Status removed",
       data: {
-        app_id: appId,
+        status_id: statusId,
         deleted: true,
       },
     });
   } catch (error) {
-    return toErrorResponse(error?.message || "Unable to delete application", 500);
+    return toErrorResponse(error?.message || "Unable to delete status", 500);
   }
 }
-
-

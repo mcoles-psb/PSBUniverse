@@ -40,6 +40,10 @@ export const ADMIN_ROLE_PERMISSION_MAP = {
   admin: [...CRUD_ACTIONS],
 };
 
+const PRIVILEGED_GLOBAL_ROLE_KEYS = ["devmain"];
+const DEFAULT_GLOBAL_ACCESS_APP_KEY =
+  String(process.env.USER_MASTER_GLOBAL_APP_KEY || "").trim() || "psbuniverse";
+
 function hasValue(value) {
   return value !== undefined && value !== null && String(value).trim() !== "";
 }
@@ -142,7 +146,28 @@ export async function requireActionPermission(options = {}) {
     action,
     appKey = null,
     rolePermissionMap = ADMIN_ROLE_PERMISSION_MAP,
+    allowPrivilegedGlobalRoleBypass = rolePermissionMap === ADMIN_ROLE_PERMISSION_MAP,
+    globalBypassAppKey = DEFAULT_GLOBAL_ACCESS_APP_KEY,
+    requiredRoleKey = null,
   } = options;
+
+  const normalizedRequiredRoleKey = hasValue(requiredRoleKey)
+    ? String(requiredRoleKey).trim().toLowerCase()
+    : null;
+
+  const hasRequiredRole = (permission) => {
+    if (!normalizedRequiredRoleKey) return true;
+
+    if (normalizedRequiredRoleKey === "devmain" && permission?.isDevMain) {
+      return true;
+    }
+
+    const roleKeys = Array.isArray(permission?.roleKeys)
+      ? permission.roleKeys.map((value) => String(value || "").toLowerCase())
+      : [];
+
+    return roleKeys.includes(normalizedRequiredRoleKey);
+  };
 
   const contextResult = await getAuthenticatedContext({ appKey });
   if (contextResult.error) {
@@ -158,11 +183,78 @@ export async function requireActionPermission(options = {}) {
       supabaseClient: contextResult.supabaseClient,
     });
 
+    if (!hasRequiredRole(permission)) {
+      return {
+        error: toErrorResponse(
+          `Access denied: ${String(normalizedRequiredRoleKey || "required role").toUpperCase()} role required`,
+          403
+        ),
+      };
+    }
+
     return {
       context: contextResult,
       permission,
     };
   } catch (error) {
+    const shouldTryGlobalBypass =
+      Boolean(allowPrivilegedGlobalRoleBypass) && hasValue(appKey) && hasValue(globalBypassAppKey);
+
+    if (shouldTryGlobalBypass) {
+      try {
+        const fallbackPermission = await assertUserCanPerformAction({
+          action,
+          userId: contextResult.userRecord[USER_MASTER_COLUMNS.userId],
+          appKey: globalBypassAppKey,
+          rolePermissionMap,
+          supabaseClient: contextResult.supabaseClient,
+        });
+
+        const fallbackRoleKeys = Array.isArray(fallbackPermission?.roleKeys)
+          ? fallbackPermission.roleKeys.map((value) => String(value || "").toLowerCase())
+          : [];
+
+        const hasPrivilegedRole =
+          Boolean(fallbackPermission?.isDevMain) ||
+          fallbackRoleKeys.some((roleKey) => PRIVILEGED_GLOBAL_ROLE_KEYS.includes(roleKey));
+
+        if (hasPrivilegedRole) {
+          if (!hasRequiredRole(fallbackPermission)) {
+            return {
+              error: toErrorResponse(
+                `Access denied: ${String(normalizedRequiredRoleKey || "required role").toUpperCase()} role required`,
+                403
+              ),
+            };
+          }
+
+          return {
+            context: {
+              ...contextResult,
+              access: fallbackPermission,
+            },
+            permission: {
+              ...fallbackPermission,
+              usedGlobalRoleBypass: true,
+              requestedAppKey: hasValue(appKey) ? String(appKey) : null,
+              fallbackAppKey: String(globalBypassAppKey),
+            },
+          };
+        }
+      } catch {
+        // Fallback denial uses the original error for clarity.
+      }
+    }
+
+    if (normalizedRequiredRoleKey) {
+      return {
+        error: toErrorResponse(
+          `Access denied: ${String(normalizedRequiredRoleKey).toUpperCase()} role required`,
+          403
+        ),
+      };
+    }
+
     return {
       error: toErrorResponse(error?.message || "Access denied", 403),
     };

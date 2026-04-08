@@ -112,8 +112,8 @@ export default function Header({
     <header className="app-header d-flex align-items-center justify-content-between gap-2">
       <div className="d-flex align-items-center gap-3 flex-wrap app-header-left">
         <div>
-          <p className="app-header-kicker mb-0">PSBUniverse</p>
-          <h1 className="app-header-title mb-0">Operations Workspace</h1>
+          <h1 className="app-header-title mb-0">PSBUniverse</h1>
+          <p className="app-header-subtitle mb-0">Operations Workspace</p>
         </div>
         <nav className="app-header-tabs d-none d-md-flex" aria-label="Primary tabs">
           {tabs.map((tab) => (

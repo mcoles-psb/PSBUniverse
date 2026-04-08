@@ -11,13 +11,15 @@ import {
   USER_MASTER_CACHE_KEYS,
   USER_MASTER_CACHE_TTL,
 } from "@/modules/user-master/cache/user-master.cache";
-import { toastError, toastSuccess, toastWarning } from "@/shared/utils/toast";
+import { toastSuccess, toastWarning } from "@/shared/utils/toast";
 
 export default function LoginPage() {
   const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [inlineError, setInlineError] = useState("");
+  const [shakeForm, setShakeForm] = useState(false);
 
   function mapLoginError(errorMessage) {
     const text = String(errorMessage || "").toLowerCase();
@@ -27,7 +29,7 @@ export default function LoginPage() {
     }
 
     if (text.includes("account is inactive") || text.includes("status does not allow")) {
-      return "Your account is not ready for sign in. Please contact your administrator.";
+      return "Account is inactive. Contact administrator.";
     }
 
     if (text.includes("required")) {
@@ -43,6 +45,7 @@ export default function LoginPage() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    setInlineError("");
     setSubmitting(true);
 
     try {
@@ -98,7 +101,9 @@ export default function LoginPage() {
 
       router.push("/profile");
     } catch (error) {
-      toastError(mapLoginError(error?.message), "Sign In Failed");
+      setInlineError(mapLoginError(error?.message));
+      setShakeForm(true);
+      window.setTimeout(() => setShakeForm(false), 320);
     } finally {
       setSubmitting(false);
     }
@@ -113,36 +118,33 @@ export default function LoginPage() {
               <Card.Body className="p-0">
                 <Row className="g-0">
                   <Col lg={5} className="portal-login-welcome">
-                    <p className="portal-brand-kicker mb-2">Welcome To</p>
                     <h1 className="portal-brand-name mb-2">PSBUniverse</h1>
+                    <p className="portal-brand-subtitle mb-2">Operations Workspace</p>
                     <p className="portal-brand-copy mb-3">
-                      A simple workspace for your daily projects, quotes, and updates.
+                      Manage apps, users, and operations in one place.
                     </p>
-                    <p className="portal-brand-sub mb-0">Please sign in to continue.</p>
                   </Col>
 
                   <Col lg={7} className="portal-login-form-wrap">
-                    <div className="portal-login-form-inner">
+                    <div className={`portal-login-form-inner ${shakeForm ? "portal-login-form-shake" : ""}`}>
                       <div className="mb-3">
                         <h2 className="mb-1">Sign In</h2>
-                        <p className="text-muted mb-0">
-                          Use your username/email and password.
-                        </p>
                       </div>
 
                       <Form onSubmit={handleSubmit}>
-                        <Form.Group className="mb-3">
+                        <Form.Group className="mb-2">
                           <Form.Label>Username or Email</Form.Label>
                           <Form.Control
                             value={identifier}
                             onChange={(event) => setIdentifier(event.target.value)}
                             placeholder="Enter username or email"
                             autoComplete="username"
+                            autoFocus
                             required
                           />
                         </Form.Group>
 
-                        <Form.Group className="mb-3">
+                        <Form.Group className="mb-2">
                           <Form.Label>Password</Form.Label>
                           <Form.Control
                             type="password"
@@ -154,6 +156,12 @@ export default function LoginPage() {
                           />
                         </Form.Group>
 
+                        {inlineError ? (
+                          <div className="portal-inline-error" role="alert" aria-live="polite">
+                            {inlineError}
+                          </div>
+                        ) : null}
+
                         <div className="d-flex gap-2">
                           <Button
                             type="submit"
@@ -161,7 +169,12 @@ export default function LoginPage() {
                             className="portal-signin-btn"
                             disabled={submitting}
                           >
-                            {submitting ? "Signing in..." : "Sign In"}
+                            {submitting ? (
+                              <>
+                                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                                Signing in...
+                              </>
+                            ) : "Sign In"}
                           </Button>
                         </div>
                       </Form>

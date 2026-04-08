@@ -647,6 +647,14 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
     return selected?.name || "—";
   }, [manufacturers, project?.manufacturerId]);
 
+  const selectedLeafGuardName = useMemo(() => {
+    if (!project?.leafGuardIncluded) return "";
+    const selected = leafGuards.find(
+      (item) => String(item.leaf_guard_id) === String(project?.leafGuardId || "")
+    );
+    return String(selected?.name || "").trim();
+  }, [leafGuards, project?.leafGuardId, project?.leafGuardIncluded]);
+
   const colorNameById = useMemo(() => {
     const map = {};
     (colors || []).forEach((color) => {
@@ -664,18 +672,31 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
       return Number.isFinite(parsed) ? Math.trunc(parsed) : null;
     };
 
+    const gutterFootages = Array.isArray(quoteResult?.pricing?.gutterQuantities)
+      ? quoteResult.pricing.gutterQuantities
+      : [];
+    const downspoutFootages = Array.isArray(quoteResult?.pricing?.downspoutFootages)
+      ? quoteResult.pricing.downspoutFootages
+      : [];
+
     return (project.sections || [])
       .map((section, index) => {
         const sides = toIntegerOrNull(section.sides);
         const ft = toIntegerOrNull(section.length);
+        const heightFt = toIntegerOrNull(section.height);
         const dsQty = toIntegerOrNull(section.downspoutQty);
+        const gutterFt = Number(gutterFootages[index] || 0);
+        const downspoutFt = Number(downspoutFootages[index] || 0);
         const gutterColor = String(colorNameById[String(section.colorId)] || "").trim();
         const downspoutColor = String(colorNameById[String(section.downspoutColorId)] || "").trim();
 
         const hasAnyValue =
           sides !== null ||
           ft !== null ||
+          heightFt !== null ||
           dsQty !== null ||
+          gutterFt > 0 ||
+          downspoutFt > 0 ||
           hasValue(gutterColor) ||
           hasValue(downspoutColor);
 
@@ -686,16 +707,41 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
           gutterColor,
           sides,
           ft,
+          heightFt,
+          gutterFt,
           downspoutColor,
           dsQty,
+          downspoutFt,
           endCapsRight: sides,
           endCapsLeft: sides,
         };
       })
       .filter(Boolean);
-  }, [project, colorNameById]);
+  }, [project, colorNameById, quoteResult]);
 
-  const hasBreakdownData = sectionBreakdownRows.length > 0;
+  const extrasMaterialRows = useMemo(() => {
+    if (!project?.extrasIncluded) return [];
+    return (project.extras || [])
+      .map((extra) => {
+        const description = String(extra.description || "").trim();
+        const qty = Number(extra.qty);
+        const unitPrice = Number(extra.unitPrice);
+        const hasAnyValue =
+          description !== "" || Number.isFinite(qty) || Number.isFinite(unitPrice);
+
+        if (!hasAnyValue) return null;
+
+        return {
+          description: description || "—",
+          qty: Number.isFinite(qty) ? Math.trunc(qty) : null,
+          unitPrice: Number.isFinite(unitPrice) ? unitPrice : null,
+        };
+      })
+      .filter(Boolean);
+  }, [project?.extrasIncluded, project?.extras]);
+
+  const hasBreakdownData =
+    sectionBreakdownRows.length > 0 || Boolean(selectedLeafGuardName) || extrasMaterialRows.length > 0;
 
   const saveProject = async () => {
     if (!project) return;
@@ -1165,7 +1211,7 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
               {(project.sections || []).map((section, i) => (
                 <div key={i} className="section-input-card">
                   <div className="section-input-header">
-                    <span className="section-input-title">Section #{i + 1}</span>
+                    <span className="section-input-title">Section {i + 1}</span>
                     <Button
                       variant="outline-secondary"
                       size="sm"
@@ -1330,7 +1376,7 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
                         <option value="">Select leaf guard...</option>
                         {leafGuards.map((lg) => (
                           <option key={lg.leaf_guard_id} value={String(lg.leaf_guard_id)}>
-                            {lg.name} (${lg.price}/lf)
+                            {lg.name} (${lg.price})
                           </option>
                         ))}
                       </Form.Select>
@@ -1346,19 +1392,19 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
                         onChange={(e) => updateField("manualLeafGuardRateEnabled", e.target.checked)}
                       />
                       <label className="additionals-toggle-label" htmlFor={getToggleId("leaf-guard-manual")}>
-                        Manual LG Rate
+                        Manual LG Price
                       </label>
                     </div>
                   </Col>
                   {project.manualLeafGuardRateEnabled ? (
                     <Col md={4}>
                       <Form.Group>
-                        <Form.Label className="small text-muted mb-1">Manual LG Rate</Form.Label>
+                        <Form.Label className="small text-muted mb-1">Manual LG Price</Form.Label>
                         <Form.Control
                           className="quote-field-control"
                           type="number"
                           step="0.01"
-                          placeholder="Manual LG rate"
+                          placeholder="Manual LG price"
                           value={project.manualLeafGuardRate || ""}
                           onChange={(e) => updateField("manualLeafGuardRate", e.target.value)}
                         />
@@ -1605,11 +1651,11 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
                       <h5 className="mb-3 fw-semibold">Pricing Summary</h5>
 
                       <div className="quote-price-row">
-                        <span>Gutter Total</span>
+                        <span>Gutter k Style 6 Inch</span>
                         <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.materialCost)}</span>
                       </div>
                       <div className="quote-price-row">
-                        <span>Downspouts Total</span>
+                        <span>3x4 Downspouts</span>
                         <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.downspoutCost)}</span>
                       </div>
                       {Number(quoteResult.pricing.leafGuardCost || 0) > 0 && (
@@ -1624,6 +1670,17 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
                           <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.extrasPrice)}</span>
                         </div>
                       )}
+
+                      <div className="quote-price-gap" />
+
+                      <div className="quote-price-row quote-metric-row">
+                        <span>Total Gutter FT</span>
+                        <span className="quote-price-value" style={moneyValueStyle}>{fmt(quoteResult.pricing.totalGutter)} FT</span>
+                      </div>
+                      <div className="quote-price-row quote-metric-row">
+                        <span>Total Downspout FT</span>
+                        <span className="quote-price-value" style={moneyValueStyle}>{fmt(quoteResult.pricing.totalDownspouts)} FT</span>
+                      </div>
 
                       <div className="quote-price-gap" />
 
@@ -1647,7 +1704,9 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
                         </span>
                       </div>
 
-                      <div className="quote-price-row mt-2">
+                      <div
+                        className={`quote-price-row mt-2 ${Number(quoteResult.pricing.depositPercentDisplay || 0) > 0 ? "quote-price-row-deposit-active" : ""}`}
+                      >
                         <span className="text-muted">Deposit ({fmt(quoteResult.pricing.depositPercentDisplay)}%)</span>
                         <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.depositAmount)}</span>
                       </div>
@@ -1671,7 +1730,7 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
                                 <div className="material-section-header">Section {row.section}</div>
 
                                 <div className="material-section-block">
-                                  <div className="material-section-block-title">Gutter</div>
+                                  <div className="material-section-block-title">Gutter k Style 6 Inch</div>
                                   <div className="material-section-fields material-section-fields-gutter">
                                     <div className="material-section-field">
                                       <span className="material-section-label">Sides</span>
@@ -1687,12 +1746,22 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
                                         {row.ft === null ? "—" : `${displayIntegerOrDash(row.ft)} FT`}
                                       </span>
                                     </div>
+                                    <div className="material-section-field">
+                                      <span className="material-section-label">Height</span>
+                                      <span className="material-section-value">
+                                        {row.heightFt === null ? "—" : `${displayIntegerOrDash(row.heightFt)} FT`}
+                                      </span>
+                                    </div>
+                                    <div className="material-section-field">
+                                      <span className="material-section-label">Gutter FT</span>
+                                      <span className="material-section-value">{fmt(row.gutterFt)} FT</span>
+                                    </div>
                                   </div>
                                 </div>
 
                                 <div className="material-section-block">
-                                  <div className="material-section-block-title">Downspouts</div>
-                                  <div className="material-section-fields material-section-fields-downspout">
+                                  <div className="material-section-block-title"> 3x4 Downspouts</div>
+                                  <div className="material-section-fields material-section-fields-downspout-detail">
                                     <div className="material-section-field">
                                       <span className="material-section-label">Color</span>
                                       <span className="material-section-value">{displayOrDash(row.downspoutColor)}</span>
@@ -1701,11 +1770,15 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
                                       <span className="material-section-label">Quantity</span>
                                       <span className="material-section-value">{displayIntegerOrDash(row.dsQty)}</span>
                                     </div>
+                                    <div className="material-section-field">
+                                      <span className="material-section-label">Downspout FT</span>
+                                      <span className="material-section-value">{fmt(row.downspoutFt)} FT</span>
+                                    </div>
                                   </div>
                                 </div>
 
                                 <div className="material-section-block">
-                                  <div className="material-section-block-title">End Caps</div>
+                                  <div className="material-section-block-title">End Caps Needed</div>
                                   <div className="material-section-fields material-section-fields-downspout">
                                     <div className="material-section-field">
                                       <span className="material-section-label">Right</span>
@@ -1721,6 +1794,51 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
                             ))}
                           </div>
                         </div>
+
+                        {selectedLeafGuardName ? (
+                          <div className="mb-3">
+                            <div className="fw-semibold mb-2">Leaf Guard</div>
+                            <article className="material-section-card">
+                              <div className="material-section-block">
+                                <div className="material-section-fields material-section-fields-single">
+                                  <div className="material-section-field">
+                                    <span className="material-section-label">Name</span>
+                                    <span className="material-section-value">{selectedLeafGuardName}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </article>
+                          </div>
+                        ) : null}
+
+                        {extrasMaterialRows.length > 0 ? (
+                          <div className="mb-1">
+                            <div className="fw-semibold mb-2">Extras</div>
+                            <div className="material-sections-stack">
+                              {extrasMaterialRows.map((extra, index) => (
+                                <article className="material-section-card" key={`extra-material-${index}`}>
+                                  <div className="material-section-header">Extra {index + 1}</div>
+                                  <div className="material-section-block">
+                                    <div className="material-section-fields material-section-fields-extra">
+                                      <div className="material-section-field">
+                                        <span className="material-section-label">Description</span>
+                                        <span className="material-section-value">{displayOrDash(extra.description)}</span>
+                                      </div>
+                                      <div className="material-section-field">
+                                        <span className="material-section-label">Quantity</span>
+                                        <span className="material-section-value">{displayIntegerOrDash(extra.qty)}</span>
+                                      </div>
+                                      <div className="material-section-field">
+                                        <span className="material-section-label">Price (Per Item)</span>
+                                        <span className="material-section-value">{fmtCurrency(extra.unitPrice || 0)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </article>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
                     )}
                   </div>

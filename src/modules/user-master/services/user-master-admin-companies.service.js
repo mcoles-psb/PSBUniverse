@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import {
   USER_MASTER_COLUMNS,
   USER_MASTER_TABLES,
@@ -34,22 +34,23 @@ export async function GET(request) {
     if (gate.error) return gate.error;
 
     const { data, error } = await gate.context.supabaseClient
-      .from(USER_MASTER_TABLES.applications)
+      .from(USER_MASTER_TABLES.companies)
       .select("*")
-      .order(USER_MASTER_COLUMNS.appId, { ascending: true });
+      .order(USER_MASTER_COLUMNS.companyId, { ascending: true });
 
     if (error) throw error;
-    const applications = data || [];
+
+    const companies = data || [];
     return NextResponse.json({
       success: true,
-      message: "Applications loaded",
+      message: "Companies loaded",
       data: {
-        applications,
+        companies,
       },
-      applications,
+      companies,
     });
   } catch (error) {
-    return toErrorResponse(error?.message || "Unable to list applications", 500);
+    return toErrorResponse(error?.message || "Unable to list companies", 500);
   }
 }
 
@@ -67,22 +68,23 @@ export async function POST(request) {
     const body = await request.json();
 
     const { data, error } = await gate.context.supabaseClient
-      .from(USER_MASTER_TABLES.applications)
+      .from(USER_MASTER_TABLES.companies)
       .insert(body)
       .select("*")
       .single();
 
     if (error) throw error;
+
     return NextResponse.json({
       success: true,
-      message: "Application created",
+      message: "Company created",
       data: {
-        application: data,
+        company: data,
       },
-      application: data,
+      company: data,
     });
   } catch (error) {
-    return toErrorResponse(error?.message || "Unable to create application", 500);
+    return toErrorResponse(error?.message || "Unable to create company", 500);
   }
 }
 
@@ -98,38 +100,39 @@ export async function PATCH(request) {
     if (gate.error) return gate.error;
 
     const body = await request.json();
-    const appId = body?.app_id ?? body?.appId;
+    const companyId = body?.comp_id ?? body?.compId;
 
-    if (!hasValue(appId)) {
-      return toErrorResponse("app_id is required", 400);
+    if (!hasValue(companyId)) {
+      return toErrorResponse("comp_id is required", 400);
     }
 
     const updates = { ...body };
-    delete updates.app_id;
-    delete updates.appId;
+    delete updates.comp_id;
+    delete updates.compId;
 
     if (Object.keys(updates).length === 0) {
-      return toErrorResponse("No application update fields were provided", 400);
+      return toErrorResponse("No company update fields were provided", 400);
     }
 
     const { data, error } = await gate.context.supabaseClient
-      .from(USER_MASTER_TABLES.applications)
+      .from(USER_MASTER_TABLES.companies)
       .update(updates)
-      .eq(USER_MASTER_COLUMNS.appId, appId)
+      .eq(USER_MASTER_COLUMNS.companyId, companyId)
       .select("*")
       .single();
 
     if (error) throw error;
+
     return NextResponse.json({
       success: true,
-      message: "Application updated",
+      message: "Company updated",
       data: {
-        application: data,
+        company: data,
       },
-      application: data,
+      company: data,
     });
   } catch (error) {
-    return toErrorResponse(error?.message || "Unable to update application", 500);
+    return toErrorResponse(error?.message || "Unable to update company", 500);
   }
 }
 
@@ -145,16 +148,16 @@ export async function DELETE(request) {
     if (gate.error) return gate.error;
 
     const { searchParams } = new URL(request.url);
-    const appId = searchParams.get("app_id") || searchParams.get("appId");
+    const companyId = searchParams.get("comp_id") || searchParams.get("compId");
 
-    if (!hasValue(appId)) {
-      return toErrorResponse("app_id is required", 400);
+    if (!hasValue(companyId)) {
+      return toErrorResponse("comp_id is required", 400);
     }
 
     const { error } = await gate.context.supabaseClient
-      .from(USER_MASTER_TABLES.applications)
+      .from(USER_MASTER_TABLES.companies)
       .delete()
-      .eq(USER_MASTER_COLUMNS.appId, appId);
+      .eq(USER_MASTER_COLUMNS.companyId, companyId);
 
     if (error) {
       if (String(error?.code || "") === "23503") {
@@ -163,17 +166,16 @@ export async function DELETE(request) {
 
       throw error;
     }
+
     return NextResponse.json({
       success: true,
-      message: "Application deleted",
+      message: "Company removed",
       data: {
-        app_id: appId,
+        comp_id: companyId,
         deleted: true,
       },
     });
   } catch (error) {
-    return toErrorResponse(error?.message || "Unable to delete application", 500);
+    return toErrorResponse(error?.message || "Unable to delete company", 500);
   }
 }
-
-

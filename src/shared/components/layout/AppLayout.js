@@ -16,6 +16,13 @@ const COMPLETE_FADE_MS = 320;
 const RESET_MS = 220;
 const START_PROGRESS = 0.26;
 const MAX_IN_FLIGHT_PROGRESS = 0.9;
+const APP_ROUTE_ACCESS_RULES = [
+  { prefix: "/gutter", appKey: "gutter-calculator" },
+  { prefix: "/travel", appKey: "travel-time" },
+  { prefix: "/setup/admin", appKey: "admin-config" },
+  { prefix: "/setup/global", appKey: "admin-config" },
+  { prefix: "/setup/gutter", appKey: "admin-config" },
+];
 
 function isTrackableApiRequest(input) {
   if (typeof window === "undefined") return false;
@@ -67,13 +74,45 @@ function shouldStartRouteLoader(event) {
   }
 }
 
+function getRequiredAppKeyForPathname(pathname) {
+  const currentPath = String(pathname || "").toLowerCase();
+  const matchingRule = APP_ROUTE_ACCESS_RULES.find((rule) =>
+    currentPath === rule.prefix || currentPath.startsWith(`${rule.prefix}/`)
+  );
+
+  return matchingRule?.appKey || null;
+}
+
 export default function AppLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressVisible, setProgressVisible] = useState(false);
+  const [routeAccessLoading, setRouteAccessLoading] = useState(false);
+  const [routeAccessAllowed, setRouteAccessAllowed] = useState(true);
   const { loading, user, access, isAuthenticated } = useUserMaster();
+
+  const hasLocalAccessForApp = useCallback(
+    (appKey) => {
+      if (!appKey) return true;
+      if (access?.isDevMain) return true;
+
+      const normalizedAppKey = String(appKey || "").trim().toLowerCase();
+      const normalizedToken = normalizedAppKey.replace(/[^a-z0-9]/g, "");
+
+      const directKeys = Array.isArray(access?.appKeys)
+        ? access.appKeys.map((value) => String(value || "").trim().toLowerCase())
+        : [];
+
+      const tokenKeys = Array.isArray(access?.appKeyTokens)
+        ? access.appKeyTokens.map((value) => String(value || "").trim().toLowerCase())
+        : [];
+
+      return directKeys.includes(normalizedAppKey) || tokenKeys.includes(normalizedToken);
+    },
+    [access]
+  );
 
   const routeSignature = useMemo(() => pathname, [pathname]);
 
@@ -211,6 +250,81 @@ export default function AppLayout({ children }) {
   }, [isAuthenticated, loading, router, startLoader]);
 
   useEffect(() => {
+    if (loading || !isAuthenticated) {
+      return;
+    }
+
+    const scopedAppKey = getRequiredAppKeyForPathname(pathname);
+    if (!scopedAppKey) {
+      setRouteAccessAllowed(true);
+      setRouteAccessLoading(false);
+      return;
+    }
+
+    if (hasLocalAccessForApp(scopedAppKey)) {
+      setRouteAccessAllowed(true);
+      setRouteAccessLoading(false);
+      return;
+    }
+
+    let isCancelled = false;
+
+    setRouteAccessAllowed(true);
+    setRouteAccessLoading(true);
+    startLoader();
+
+    const verifyRouteAccess = async () => {
+      try {
+        const response = await fetch(
+          `/api/user-master/session?appKey=${encodeURIComponent(scopedAppKey)}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+
+        const payload = await response.json().catch(() => null);
+        const allowed =
+          response.ok &&
+          !payload?.accountInactive &&
+          !payload?.statusRestricted &&
+          Boolean(
+            payload?.access?.isDevMain ||
+              payload?.access?.hasAccess ||
+              payload?.access?.permissions?.read
+          );
+
+        if (isCancelled) {
+          return;
+        }
+
+        if (allowed) {
+          setRouteAccessAllowed(true);
+        } else {
+          setRouteAccessAllowed(false);
+          router.replace("/dashboard");
+        }
+      } catch {
+        if (!isCancelled) {
+          setRouteAccessAllowed(false);
+          router.replace("/dashboard");
+        }
+      } finally {
+        if (!isCancelled) {
+          setRouteAccessLoading(false);
+        }
+        finishLoader();
+      }
+    };
+
+    void verifyRouteAccess();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [finishLoader, hasLocalAccessForApp, isAuthenticated, loading, pathname, router, startLoader]);
+
+  useEffect(() => {
     if (!hasMountedRouteRef.current) {
       hasMountedRouteRef.current = true;
       return;
@@ -296,7 +410,9 @@ export default function AppLayout({ children }) {
     }
   }
 
-  if (loading) {
+  const requiredAppKey = getRequiredAppKeyForPathname(pathname);
+
+  if (loading || (requiredAppKey && !routeAccessAllowed)) {
     return (
       <main className="auth-loading">
         <Spinner animation="border" role="status" />

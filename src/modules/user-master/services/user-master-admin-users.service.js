@@ -19,13 +19,41 @@ const WRITABLE_USER_FIELDS = [
   "username",
   "email",
   "first_name",
+  "middle_name",
   "last_name",
   "phone",
   "address",
+  "position",
+  "hire_date",
   "comp_id",
   "dept_id",
   "status_id",
-  "is_active",
+];
+
+const STATUS_TEXT_FIELDS = [
+  "status_name",
+  "sts_name",
+  "name",
+  "code",
+  "status_code",
+  "status",
+  "label",
+  "description",
+  "status_desc",
+  "status_description",
+  "sts_desc",
+  "slug",
+  "key",
+];
+
+const INACTIVE_STATUS_HINTS = [
+  "inactive",
+  "disabled",
+  "suspended",
+  "locked",
+  "deleted",
+  "blocked",
+  "archived",
 ];
 
 function hasValue(value) {
@@ -51,6 +79,37 @@ function buildUserPayload(body) {
   return payload;
 }
 
+function statusLooksInactive(statusRecord) {
+  if (!statusRecord || typeof statusRecord !== "object") return false;
+
+  if (statusRecord.is_active === false) {
+    return true;
+  }
+
+  const mergedText = STATUS_TEXT_FIELDS.map((field) => statusRecord[field])
+    .filter((value) => typeof value === "string" && value.trim())
+    .join(" ")
+    .toLowerCase();
+
+  if (!mergedText) return false;
+  return INACTIVE_STATUS_HINTS.some((keyword) => mergedText.includes(keyword));
+}
+
+async function deriveActiveStateFromStatusId(supabaseClient, statusId) {
+  if (!hasValue(statusId)) {
+    return true;
+  }
+
+  const { data, error } = await supabaseClient
+    .from(USER_MASTER_TABLES.statuses)
+    .select("*")
+    .eq(USER_MASTER_COLUMNS.statusId, statusId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return !statusLooksInactive(data || null);
+}
+
 export async function GET(request) {
   try {
     const appKey = getAdminAppKey(request);
@@ -58,6 +117,7 @@ export async function GET(request) {
       action: "read",
       appKey,
       rolePermissionMap: ADMIN_ROLE_PERMISSION_MAP,
+      requiredRoleKey: "devmain",
     });
 
     if (gate.error) return gate.error;
@@ -98,6 +158,7 @@ export async function POST(request) {
       action: "create",
       appKey,
       rolePermissionMap: ADMIN_ROLE_PERMISSION_MAP,
+      requiredRoleKey: "devmain",
     });
 
     if (gate.error) return gate.error;
@@ -119,6 +180,11 @@ export async function POST(request) {
       dept_id: payload.dept_id,
       status_id: payload.status_id,
     });
+
+    payload.is_active = await deriveActiveStateFromStatusId(
+      gate.context.supabaseClient,
+      payload.status_id
+    );
 
     payload.password_hash = await hashPassword(rawPassword);
 
@@ -150,6 +216,7 @@ export async function PATCH(request) {
       action: "update",
       appKey,
       rolePermissionMap: ADMIN_ROLE_PERMISSION_MAP,
+      requiredRoleKey: "devmain",
     });
 
     if (gate.error) return gate.error;
@@ -187,6 +254,13 @@ export async function PATCH(request) {
       existingCompanyId: existingUser?.comp_id,
     });
 
+    if (Object.prototype.hasOwnProperty.call(updates, "status_id")) {
+      updates.is_active = await deriveActiveStateFromStatusId(
+        gate.context.supabaseClient,
+        updates.status_id
+      );
+    }
+
     const updated = await updateUserAccount({
       userId,
       updates,
@@ -210,12 +284,15 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
+  let hardDeleteRequested = false;
+
   try {
     const appKey = getAdminAppKey(request);
     const gate = await requireActionPermission({
       action: "delete",
       appKey,
       rolePermissionMap: ADMIN_ROLE_PERMISSION_MAP,
+      requiredRoleKey: "devmain",
     });
 
     if (gate.error) return gate.error;
@@ -223,6 +300,7 @@ export async function DELETE(request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("user_id") || searchParams.get("userId");
     const hardDelete = searchParams.get("hard") === "true";
+    hardDeleteRequested = hardDelete;
 
     if (!hasValue(userId)) {
       return toErrorResponse("user_id is required", 400);
@@ -268,6 +346,10 @@ export async function DELETE(request) {
       user: safeUser,
     });
   } catch (error) {
+    if (hardDeleteRequested && String(error?.code || "") === "23503") {
+      return toErrorResponse("Cannot delete: record is in use", 409);
+    }
+
     return toErrorResponse(error?.message || "Unable to delete/deactivate user", 500);
   }
 }

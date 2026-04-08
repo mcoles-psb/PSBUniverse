@@ -35,6 +35,39 @@ function hasValue(value) {
   return value !== undefined && value !== null && String(value).trim() !== "";
 }
 
+function isInactiveFlag(value) {
+  if (value === false || value === 0) return true;
+  const text = String(value ?? "").trim().toLowerCase();
+  return text === "false" || text === "0" || text === "f" || text === "n" || text === "no";
+}
+
+function isRowActive(record) {
+  return !isInactiveFlag(record?.is_active);
+}
+
+function normalizeKeyToken(value) {
+  return normalizeText(value).replace(/[^a-z0-9]/g, "");
+}
+
+function collectNormalizedKeys(record, candidates) {
+  const values = [];
+
+  (candidates || []).forEach((field) => {
+    const value = record?.[field];
+    if (typeof value === "string" && value.trim()) {
+      values.push(value);
+    }
+  });
+
+  return uniqueValues(
+    values.flatMap((value) => {
+      const normalized = normalizeText(value);
+      const token = normalizeKeyToken(value);
+      return [normalized, token].filter(Boolean);
+    })
+  );
+}
+
 function pickFirstStringValue(record, candidates) {
   if (!record || typeof record !== "object") return "";
 
@@ -397,6 +430,7 @@ export async function resolveUserRoleAccess(config = {}) {
   const tables = mergeConfig(USER_MASTER_TABLES, tableOverrides);
   const columns = mergeConfig(USER_MASTER_COLUMNS, columnOverrides);
   const normalizedAppKey = normalizeText(appKey);
+  const normalizedAppKeyToken = normalizeKeyToken(appKey);
 
   const { data: mappings, error: mappingsError } = await supabaseClient
     .from(tables.userAppRoleAccess)
@@ -405,9 +439,10 @@ export async function resolveUserRoleAccess(config = {}) {
 
   if (mappingsError) throw mappingsError;
 
-  const allMappings = mappings || [];
-  const mappedRoleIds = uniqueValues(allMappings.map((row) => row[columns.roleId]));
-  const mappedAppIds = uniqueValues(allMappings.map((row) => row[columns.appId]));
+  const allMappingsRaw = mappings || [];
+  const activeMappings = allMappingsRaw.filter((mapping) => isRowActive(mapping));
+  const mappedRoleIds = uniqueValues(activeMappings.map((row) => row[columns.roleId]));
+  const mappedAppIds = uniqueValues(activeMappings.map((row) => row[columns.appId]));
 
   const roleRecords = await fetchRolesByIds({
     supabaseClient,
@@ -416,42 +451,53 @@ export async function resolveUserRoleAccess(config = {}) {
     roleIds: mappedRoleIds,
   });
 
-  const roleById = new Map(roleRecords.map((role) => [String(role[columns.roleId]), role]));
+  const appRecords = await fetchAppsByIds({
+    supabaseClient,
+    tableName: tables.applications,
+    appIdColumn: columns.appId,
+    appIds: mappedAppIds,
+  });
+
+  const activeRoleRecords = roleRecords.filter((roleRecord) => isRowActive(roleRecord));
+  const activeAppRecords = appRecords.filter((appRecord) => isRowActive(appRecord));
+
+  const roleById = new Map(activeRoleRecords.map((role) => [String(role[columns.roleId]), role]));
+  const appById = new Map(activeAppRecords.map((app) => [String(app[columns.appId]), app]));
   const devmainRoleIds = new Set(
-    roleRecords
+    activeRoleRecords
       .filter((roleRecord) => getRoleKey(roleRecord, roleFieldCandidates) === DEVMAIN_ROLE_KEY)
       .map((roleRecord) => String(roleRecord[columns.roleId]))
   );
+
+  const allMappings = activeMappings.filter((mapping) => {
+    const roleIdValue = String(mapping[columns.roleId]);
+    const appIdValue = String(mapping[columns.appId]);
+    return roleById.has(roleIdValue) && appById.has(appIdValue);
+  });
 
   const isDevMain = allMappings.some((mapping) => devmainRoleIds.has(String(mapping[columns.roleId])));
 
   let resolvedAppId = hasValue(appId) ? String(appId) : null;
 
   if (!resolvedAppId && normalizedAppKey) {
-    const appRecords = await fetchAppsByIds({
-      supabaseClient,
-      tableName: tables.applications,
-      appIdColumn: columns.appId,
-      appIds: mappedAppIds,
+    const matchingApp = activeAppRecords.find((appRecord) => {
+      const appKeys = collectNormalizedKeys(appRecord, appFieldCandidates);
+      return appKeys.includes(normalizedAppKey) || appKeys.includes(normalizedAppKeyToken);
     });
-
-    const matchingApp = appRecords.find(
-      (appRecord) => getAppKey(appRecord, appFieldCandidates) === normalizedAppKey
-    );
 
     if (matchingApp && hasValue(matchingApp[columns.appId])) {
       resolvedAppId = String(matchingApp[columns.appId]);
     }
   }
 
-  const relevantMappings = isDevMain
-    ? allMappings
-    : allMappings.filter((mapping) => {
-        if (!resolvedAppId) return !normalizedAppKey;
-        return String(mapping[columns.appId]) === resolvedAppId;
-      });
+  const hasAppScope = hasValue(appId) || Boolean(normalizedAppKey);
 
-  const hasAccess = isDevMain || relevantMappings.length > 0;
+  const relevantMappings = allMappings.filter((mapping) => {
+    if (!resolvedAppId) return !normalizedAppKey;
+    return String(mapping[columns.appId]) === resolvedAppId;
+  });
+
+  const hasAccess = hasAppScope ? relevantMappings.length > 0 : isDevMain || relevantMappings.length > 0;
 
   const roleKeysForContext = uniqueValues(
     relevantMappings
@@ -460,9 +506,23 @@ export async function resolveUserRoleAccess(config = {}) {
       .map((roleRecord) => getRoleKey(roleRecord, roleFieldCandidates))
   );
 
+  const appKeysForContext = uniqueValues(
+    relevantMappings
+      .map((mapping) => appById.get(String(mapping[columns.appId])))
+      .filter(Boolean)
+      .map((appRecord) => getAppKey(appRecord, appFieldCandidates))
+  );
+
+  const appKeyTokensForContext = uniqueValues(
+    relevantMappings
+      .map((mapping) => appById.get(String(mapping[columns.appId])))
+      .filter(Boolean)
+      .flatMap((appRecord) => collectNormalizedKeys(appRecord, appFieldCandidates))
+  );
+
   let permissions = emptyPermissions();
 
-  if (isDevMain) {
+  if (isDevMain && hasAccess) {
     permissions = fullPermissions();
   } else {
     permissions = {
@@ -488,7 +548,10 @@ export async function resolveUserRoleAccess(config = {}) {
     hasAccess,
     permissions,
     roleKeys: roleKeysForContext,
-    mappingCount: allMappings.length,
+    appKeys: appKeysForContext,
+    appKeyTokens: appKeyTokensForContext,
+    mappingCount: allMappingsRaw.length,
+    activeMappingCount: allMappings.length,
     mappings: relevantMappings,
   };
 }

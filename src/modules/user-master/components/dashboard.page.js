@@ -1,104 +1,64 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Container, Row, Col, Card, Spinner } from "react-bootstrap";
+import { Container, Row, Col, Card } from "react-bootstrap";
 
-const tiles = [
-  {
-    category: "Operation",
-    items: [
-      {
-        title: "Gutter Calculator",
-        description: "Open the dedicated gutter quote calculator page.",
-        href: "/gutter",
-        cta: "Open Module",
-      },
-      {
-        title: "OHD Calculator",
-        description: "Open the overhead door calculator workflow page.",
-        href: "/ohd",
-        cta: "Open Module",
-      },
-    ],
-  },
-  {
-    category: "Setup",
-    items: [
-      {
-        title: "Global Setup Tables",
-        description:
-          "Manage shared Status, Color, and Manufacturer tables for all modules.",
-        href: "/setup/global",
-        cta: "Open Setup",
-      },
-      {
-        title: "Gutter Calculator Setup Tables",
-        description:
-          "Manage gutter-specific setup values like leaf guard, discounts, and trip fee rates.",
-        href: "/setup/gutter",
-        cta: "Open Setup",
-      },
-    ],
-  },
-  {
-    category: "Profile",
-    items: [
-      {
-        title: "User Login",
-        description:
-          "Authenticate users and load role-to-application access from User Master tables.",
-        href: "/login",
-        cta: "Open Login",
-      },
-      {
-        title: "User Profile",
-        description:
-          "Manage your psb_s_user profile, company, department, and status references.",
-        href: "/profile",
-        cta: "Open Profile",
-      },
-      {
-        title: "Company Profile",
-        description:
-          "Update company contact details used across the app header and quote preview.",
-        href: "/company",
-        cta: "Open Profile",
-      },
-      {
-        title: "Devmain/Admin Settings",
-        description:
-          "Manage users, roles, applications, and access mappings from centralized User Master tables.",
-        href: "/setup/admin",
-        cta: "Open Admin",
-      },
-    ],
-  },
-  {
-    category: "Inquiry",
-    items: [
-      {
-        title: "Travel Time",
-        description: "Go to travel time and route planning calculations.",
-        href: "/travel",
-        cta: "Open Inquiry",
-      },
-    ],
-  },
-];
+const DEFAULT_CARD_ICON = "bi-grid-3x3-gap";
+const DEFAULT_GROUP_ICON = "bi-collection";
+
+function hasValue(value) {
+  return value !== undefined && value !== null && String(value).trim() !== "";
+}
+
+function toIconClass(iconValue, fallbackIcon) {
+  const raw = String(iconValue || "").trim();
+  if (!raw) return `bi ${fallbackIcon}`;
+
+  if (raw.includes(" ")) {
+    return raw;
+  }
+
+  if (raw.startsWith("bi-")) {
+    return `bi ${raw}`;
+  }
+
+  return `bi ${raw}`;
+}
+
+function normalizeGroups(payload) {
+  const source = Array.isArray(payload?.groups) ? payload.groups : [];
+
+  return source.map((group) => ({
+    group_id: group?.group_id,
+    group_name: String(group?.group_name || "Application").trim(),
+    group_desc: String(group?.group_desc || "").trim(),
+    group_icon: String(group?.group_icon || "").trim(),
+    group_order: Number(group?.group_order || 0),
+    cards: (Array.isArray(group?.cards) ? group.cards : []).map((card) => ({
+      card_id: card?.card_id,
+      card_name: String(card?.card_name || "Module").trim(),
+      card_desc: String(card?.description || card?.card_desc || "").trim(),
+      route_path: String(card?.route || card?.route_path || "").trim(),
+      icon: String(card?.icon || "").trim(),
+    })),
+  }));
+}
 
 export default function HomePage() {
-  const [loadingAccess, setLoadingAccess] = useState(true);
-  const [canViewApps, setCanViewApps] = useState(false);
-  const [accessMessage, setAccessMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [groups, setGroups] = useState([]);
+
+  const hasGroups = useMemo(() => groups.length > 0, [groups]);
 
   useEffect(() => {
-    async function checkAccess() {
-      setLoadingAccess(true);
-      setAccessMessage("");
+    async function loadApps() {
+      setLoading(true);
+      setErrorMessage("");
 
       try {
-        const response = await fetch("/api/user-master/session", {
+        const response = await fetch("/api/my-apps", {
           method: "GET",
           cache: "no-store",
         });
@@ -106,52 +66,23 @@ export default function HomePage() {
         const payload = await response.json().catch(() => null);
 
         if (!response.ok) {
-          setCanViewApps(false);
-          setAccessMessage("Unable to verify app access right now. Please try again.");
-          return;
-        }
-
-        const accountInactive = Boolean(payload?.accountInactive);
-        const statusRestricted = Boolean(payload?.statusRestricted);
-
-        if (accountInactive) {
-          setCanViewApps(false);
-          setAccessMessage(
-            "Your account is currently inactive. You can use My PSB, but app modules are unavailable until your account is reactivated."
+          setGroups([]);
+          setErrorMessage(
+            payload?.message || "Unable to load your applications. Please try again."
           );
           return;
         }
 
-        if (statusRestricted) {
-          setCanViewApps(false);
-          setAccessMessage(
-            "Your account status does not allow app access right now. You can use My PSB while an administrator updates your status."
-          );
-          return;
-        }
-
-        const hasAppAccess = Boolean(
-          payload?.access?.isDevMain ||
-            payload?.access?.hasAccess ||
-            payload?.access?.permissions?.read
-        );
-
-        setCanViewApps(hasAppAccess);
-
-        if (!hasAppAccess) {
-          setAccessMessage(
-            "Your account is signed in, but no apps are assigned yet. Please contact your administrator."
-          );
-        }
+        setGroups(normalizeGroups(payload));
       } catch {
-        setCanViewApps(false);
-        setAccessMessage("Unable to verify app access right now. Please try again.");
+        setGroups([]);
+        setErrorMessage("Unable to load your applications. Please try again.");
       } finally {
-        setLoadingAccess(false);
+        setLoading(false);
       }
     }
 
-    void checkAccess();
+    void loadApps();
   }, []);
 
   return (
@@ -198,42 +129,66 @@ export default function HomePage() {
         </Row>
       </div>
 
-      {loadingAccess ? (
-        <div className="d-flex align-items-center gap-2 text-muted py-2">
-          <Spinner animation="border" size="sm" />
-          Checking app access...
+      {loading ? (
+        <div className="my-apps-skeleton-stack">
+          {[1, 2].map((sectionIndex) => (
+            <div key={`skeleton-group-${sectionIndex}`} className="mb-4">
+              <div className="my-apps-skeleton-line my-apps-skeleton-line-header" />
+              <Row className="g-3">
+                {[1, 2, 3].map((cardIndex) => (
+                  <Col key={`skeleton-card-${sectionIndex}-${cardIndex}`} md={4}>
+                    <div className="tile-card bg-white my-apps-skeleton-card">
+                      <div className="my-apps-skeleton-line my-apps-skeleton-line-icon" />
+                      <div className="my-apps-skeleton-line my-apps-skeleton-line-title" />
+                      <div className="my-apps-skeleton-line my-apps-skeleton-line-copy" />
+                      <div className="my-apps-skeleton-line my-apps-skeleton-line-copy short" />
+                    </div>
+                  </Col>
+                ))}
+              </Row>
+            </div>
+          ))}
         </div>
-      ) : !canViewApps ? (
+      ) : hasValue(errorMessage) ? (
+        <div className="notice-banner notice-banner-danger mb-0">{errorMessage}</div>
+      ) : !hasGroups ? (
         <div className="notice-banner notice-banner-warning mb-0">
-          {accessMessage}
+          No application modules are currently assigned to your account.
         </div>
       ) : (
-        tiles.map((section) => (
-        <div key={section.category} className="mb-4">
-          <p
-            className="text-uppercase fw-bold mb-2"
-            style={{
-              letterSpacing: "0.08em",
-              color: "#1f5f93",
-            }}
-          >
-            {section.category}
-          </p>
-          <Row className="g-3">
-            {section.items.map((tile) => (
-              <Col key={tile.href} md={4}>
-                <Link href={tile.href} className="tile-card bg-white">
-                  <span className="tile-badge">{section.category}</span>
-                  <h5 className="mt-2 mb-2">{tile.title}</h5>
-                  <p className="text-muted">
-                    {tile.description}
-                  </p>
-                  <span className="tile-cta">{tile.cta}</span>
-                </Link>
-              </Col>
-            ))}
-          </Row>
-        </div>
+        groups.map((group) => (
+          <div key={`group-${group.group_id || group.group_name}`} className="mb-4">
+            <div className="my-apps-group-heading">
+              <i
+                className={toIconClass(group.group_icon, DEFAULT_GROUP_ICON)}
+                aria-hidden="true"
+              />
+              <div>
+                <p className="text-uppercase fw-bold mb-0 tile-badge">{group.group_name}</p>
+                {hasValue(group.group_desc) ? (
+                  <p className="text-muted mb-0 my-apps-group-desc">{group.group_desc}</p>
+                ) : null}
+              </div>
+            </div>
+
+            <Row className="g-3 mt-1">
+              {group.cards.map((card) => (
+                <Col key={`card-${card.card_id || card.route_path}`} md={4}>
+                  <Link href={card.route_path} className="tile-card bg-white my-app-card">
+                    <div className="my-app-card-icon">
+                      <i
+                        className={toIconClass(card.icon, DEFAULT_CARD_ICON)}
+                        aria-hidden="true"
+                      />
+                    </div>
+                    <h5 className="mt-2 mb-2">{card.card_name}</h5>
+                    <p className="text-muted my-app-card-copy">{card.card_desc || "Open module."}</p>
+                    <span className="tile-cta">Open Module</span>
+                  </Link>
+                </Col>
+              ))}
+            </Row>
+          </div>
         ))
       )}
     </Container>

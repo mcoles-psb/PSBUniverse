@@ -120,6 +120,15 @@ export async function assertMappingReferencesValid(supabaseClient, references = 
     throw new Error(`Invalid app_id: ${String(appId)}`);
   }
 
+  if (
+    hasValue(roleRecord?.[USER_MASTER_COLUMNS.appId]) &&
+    String(roleRecord[USER_MASTER_COLUMNS.appId]) !== String(appId)
+  ) {
+    throw new Error(
+      `Role ${String(roleId)} does not belong to application ${String(appId)}`
+    );
+  }
+
   return {
     user: userRecord,
     role: roleRecord,

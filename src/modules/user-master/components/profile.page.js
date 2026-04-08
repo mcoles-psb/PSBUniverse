@@ -9,7 +9,7 @@ import {
   Container,
   Row,
 } from "react-bootstrap";
-import { toastError } from "@/shared/utils/toast";
+import { toastError, toastInfo, toastSuccess } from "@/shared/utils/toast";
 import {
   cacheReferenceData,
   cacheSessionData,
@@ -17,6 +17,20 @@ import {
   USER_MASTER_CACHE_KEYS,
   USER_MASTER_CACHE_TTL,
 } from "@/modules/user-master/cache/user-master.cache";
+
+const INACTIVE_STATUS_HINTS = [
+  "inactive",
+  "disabled",
+  "suspended",
+  "locked",
+  "deleted",
+  "blocked",
+  "archived",
+];
+
+function hasText(value) {
+  return value !== undefined && value !== null && String(value).trim() !== "";
+}
 
 function getLabel(record, preferredFields = []) {
   const candidates = [
@@ -42,12 +56,6 @@ function getLabel(record, preferredFields = []) {
   return "(Unnamed)";
 }
 
-function getValue(value, fallback = "Not provided") {
-  if (value === undefined || value === null) return fallback;
-  const text = String(value).trim();
-  return text || fallback;
-}
-
 function buildInitials(firstName, lastName, username) {
   const first = String(firstName || "").trim().charAt(0);
   const last = String(lastName || "").trim().charAt(0);
@@ -57,6 +65,39 @@ function buildInitials(firstName, lastName, username) {
   }
 
   return String(username || "U").trim().charAt(0).toUpperCase() || "U";
+}
+
+function statusIsActive(statusLabel, statusRecord) {
+  if (statusRecord?.is_active === false) {
+    return false;
+  }
+
+  const normalized = String(statusLabel || "").trim().toLowerCase();
+  if (!normalized) {
+    return true;
+  }
+
+  return !INACTIVE_STATUS_HINTS.some((keyword) => normalized.includes(keyword));
+}
+
+function buildRequestUpdateMailto(adminEmail, username) {
+  if (!hasText(adminEmail)) {
+    return "";
+  }
+
+  const subject = encodeURIComponent(`Profile update request - ${String(username || "user").trim()}`);
+  const body = encodeURIComponent(
+    [
+      "Hi,",
+      "",
+      "Please help update my profile details:",
+      "-",
+      "",
+      "Thanks.",
+    ].join("\n")
+  );
+
+  return `mailto:${adminEmail}?subject=${subject}&body=${body}`;
 }
 
 function normalizeProfilePayload(payload) {
@@ -83,12 +124,12 @@ function normalizeProfilePayload(payload) {
 
 export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState(null);
   const [access, setAccess] = useState(null);
   const [relations, setRelations] = useState({
     company: null,
     department: null,
     status: null,
+    roleGroupsByApp: [],
   });
   const [references, setReferences] = useState({
     companies: [],
@@ -156,6 +197,33 @@ export default function UserProfilePage() {
         }
       }
 
+      const cachedRoleGroups = Array.isArray(profilePayload?.relations?.roleGroupsByApp)
+        ? profilePayload.relations.roleGroupsByApp
+        : [];
+
+      const sessionSuggestsMappedRoles = Boolean(
+        sessionPayload?.access?.isDevMain ||
+          (Array.isArray(sessionPayload?.access?.roleKeys) && sessionPayload.access.roleKeys.length > 0) ||
+          Number(sessionPayload?.access?.activeMappingCount || 0) > 0 ||
+          Number(sessionPayload?.access?.mappingCount || 0) > 0
+      );
+
+      if (!forceFresh && cachedRoleGroups.length === 0 && sessionSuggestsMappedRoles) {
+        try {
+          const refreshedProfilePayloadRaw = await getCachedJson({
+            key: USER_MASTER_CACHE_KEYS.profile,
+            url: "/api/user-master/profile",
+            ttlMs: USER_MASTER_CACHE_TTL.profileMs,
+            forceFresh: true,
+            allowStaleOnError: false,
+          });
+
+          profilePayload = normalizeProfilePayload(refreshedProfilePayloadRaw);
+        } catch {
+          // Keep existing profile payload if forced refresh fails.
+        }
+      }
+
       const resolvedUser = profilePayload.user || sessionPayload.user || null;
 
       cacheSessionData({
@@ -166,9 +234,15 @@ export default function UserProfilePage() {
 
       cacheReferenceData(bootstrapPayload);
 
-      setSession(sessionPayload.session || null);
       setAccess(sessionPayload.access || null);
-      setRelations(profilePayload.relations || {});
+      setRelations({
+        company: profilePayload.relations?.company || null,
+        department: profilePayload.relations?.department || null,
+        status: profilePayload.relations?.status || null,
+        roleGroupsByApp: Array.isArray(profilePayload.relations?.roleGroupsByApp)
+          ? profilePayload.relations.roleGroupsByApp
+          : [],
+      });
       setReferences({
         companies: bootstrapPayload.companies || [],
         departments: bootstrapPayload.departments || [],
@@ -251,19 +325,118 @@ export default function UserProfilePage() {
     return companyEmail || "";
   }, [relations]);
 
-  const roleSummary = useMemo(() => {
-    if (!access) return "Role is being resolved";
+  const isActive = useMemo(() => {
+    return statusIsActive(statusLabel, relations?.status);
+  }, [relations?.status, statusLabel]);
 
-    if (access.isDevMain) {
-      return "DEVMAIN";
+  const fallbackRoleGroupFromAccess = useMemo(() => {
+    const roleKeys = Array.isArray(access?.roleKeys)
+      ? access.roleKeys
+          .map((value) => String(value || "").trim())
+          .filter((value) => value.length > 0)
+      : [];
+
+    if (roleKeys.length === 0) {
+      return [];
     }
 
-    if (Array.isArray(access.roleKeys) && access.roleKeys.length > 0) {
-      return access.roleKeys.map((value) => String(value || "").toUpperCase()).join(" • ");
+    return [
+      {
+        appId: "global",
+        appName: "Global Access",
+        roles: roleKeys.map((roleKey) => ({
+          roleId: roleKey,
+          roleName: roleKey.toUpperCase(),
+        })),
+      },
+    ];
+  }, [access?.roleKeys]);
+
+  const roleGroupsByApp = useMemo(() => {
+    const groups = Array.isArray(relations?.roleGroupsByApp) ? relations.roleGroupsByApp : [];
+
+    const normalizedGroups = groups
+      .map((group) => ({
+        appId: String(group?.appId || ""),
+        appName: String(group?.appName || "").trim() || "Unknown App",
+        roles: (Array.isArray(group?.roles) ? group.roles : [])
+          .map((role) => ({
+            roleId: String(role?.roleId || ""),
+            roleName: String(role?.roleName || "").trim(),
+          }))
+          .filter((role) => hasText(role.roleName)),
+      }))
+      .filter((group) => group.roles.length > 0);
+
+    if (normalizedGroups.length > 0) {
+      return normalizedGroups;
     }
 
-    return access.hasAccess ? "Assigned User" : "Unassigned User";
-  }, [access]);
+    return fallbackRoleGroupFromAccess;
+  }, [fallbackRoleGroupFromAccess, relations?.roleGroupsByApp]);
+
+  const requestUpdateHref = useMemo(() => {
+    return buildRequestUpdateMailto(adminEmail, profile.username);
+  }, [adminEmail, profile.username]);
+
+  const copyToClipboard = useCallback(async (value, label) => {
+    const text = String(value || "").trim();
+    if (!text) {
+      toastInfo(`${label} is not available to copy.`, "User Profile");
+      return;
+    }
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+
+      toastSuccess(`${label} copied.`, "User Profile");
+    } catch {
+      toastError(`Unable to copy ${label.toLowerCase()}.`, "User Profile");
+    }
+  }, []);
+
+  const renderValue = useCallback(
+    (value, options = {}) => {
+      const text = String(value || "").trim();
+
+      if (text) {
+        if (options.type === "email") {
+          return (
+            <a href={`mailto:${text}`} className="profile-inline-link">
+              {text}
+            </a>
+          );
+        }
+
+        return <span>{text}</span>;
+      }
+
+      return (
+        <span className="profile-empty-value">
+          <span className="profile-empty-icon" aria-hidden="true">i</span>
+          <span>Not available</span>
+          {requestUpdateHref ? (
+            <a href={requestUpdateHref} className="profile-empty-action-link">
+              Request update
+            </a>
+          ) : null}
+        </span>
+      );
+    },
+    [requestUpdateHref]
+  );
 
   if (loading) {
     return <Container className="py-4">Loading profile...</Container>;
@@ -274,42 +447,71 @@ export default function UserProfilePage() {
       <div className="mb-3">
         <h2 className="mb-0">User Profile</h2>
         <p className="text-muted mb-0">
-          A simple, read-only profile view for your account.
+          Profile view for your account.
         </p>
       </div>
 
       <div className="profile-readonly-alert notice-banner notice-banner-info mb-3">
-        Profile and password updates are managed by administrators in Configuration & Settings.
+        Profile and password updates are managed by administrators.
         Please email your administrator to request any changes.
       </div>
 
       {access && !access.hasAccess ? (
         <div className="notice-banner notice-banner-warning mb-3">
-          Your account has no role mapping in psb_m_userapproleaccess.
+          Your account currently has no active app assignments.
         </div>
       ) : null}
 
       <Row className="g-3 align-items-stretch">
         <Col lg={4}>
           <Card className="profile-social-card border-0 shadow-sm h-100">
-            <Card.Body>
-              <div className="profile-avatar">{initials}</div>
-              <h3 className="profile-name mb-1">{fullName}</h3>
-              <p className="profile-handle mb-2">@{getValue(profile.username, "unknown")}</p>
-              <Badge bg="light" text="dark" className="profile-status-badge">
-                {statusLabel}
-              </Badge>
-
-              <div className="profile-org-lines mt-3">
-                <p className="mb-1">{companyLabel}</p>
-                <p className="mb-0">{departmentLabel}</p>
+            <Card.Body className="profile-social-card-body">
+              <div className="profile-card-actions">
+                {requestUpdateHref ? (
+                  <Button as="a" href={requestUpdateHref} size="sm" className="profile-action-primary">
+                    Request Update
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={() => void copyToClipboard(profile.email, "Email")}
+                >
+                  Copy Email
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={() => void copyToClipboard(profile.username, "Username")}
+                >
+                  Copy Username
+                </Button>
               </div>
 
-              <div className="mt-4">
-                <p className="mb-1 text-muted">Administrator Contact</p>
-                <p className="mb-0 fw-semibold">
-                  {adminEmail || "Administrator Email Not Available"}
-                </p>
+              <div className="profile-social-content">
+                <div className="profile-avatar">{initials}</div>
+                <h3 className="profile-name mb-1 text-center">{fullName}</h3>
+                <p className="profile-handle mb-2 text-center">@{String(profile.username || "unknown")}</p>
+                <Badge bg="light" text="dark" className={`profile-status-badge ${isActive ? "status-active" : "status-inactive"}`}>
+                  <span className="profile-status-indicator" aria-hidden="true" />
+                  <span>{isActive ? "Active" : "Inactive"}</span>
+                </Badge>
+
+                <div className="profile-org-lines mt-3 text-center">
+                  <p className="mb-1">{companyLabel}</p>
+                  <p className="mb-0">{departmentLabel}</p>
+                </div>
+
+                {hasText(adminEmail) ? (
+                  <div className="profile-admin-contact mt-3 text-center">
+                    <p className="mb-1 text-muted">Administrator Contact</p>
+                    <a href={`mailto:${adminEmail}`} className="profile-admin-link">
+                      {adminEmail}
+                    </a>
+                  </div>
+                ) : null}
               </div>
             </Card.Body>
           </Card>
@@ -317,54 +519,82 @@ export default function UserProfilePage() {
 
         <Col lg={8}>
           <Card className="profile-summary-card border-0 shadow-sm mb-3">
-            <Card.Body>
+            <Card.Body className="profile-summary-card-body">
               <p className="profile-section-kicker mb-1">My PSB</p>
               <h4 className="mb-1">Profile Snapshot</h4>
-              <p className="text-muted mb-3">
+              <p className="text-muted mb-2">
                 Your account details are visible here for quick reference.
               </p>
 
-              <Row className="g-2">
+              <div className="profile-roles-panel mb-2">
+                <p className="profile-detail-label mb-1">Roles</p>
+                {roleGroupsByApp.length > 0 ? (
+                  <div className="profile-role-groups">
+                    {roleGroupsByApp.map((group) => (
+                      <div key={`role-group-${group.appId || group.appName}`} className="profile-role-group-card">
+                        <p className="profile-role-app-name mb-1">{group.appName}</p>
+                        <div className="profile-role-pills">
+                          {group.roles.map((role) => (
+                            <Badge key={`role-pill-${group.appId}-${role.roleId || role.roleName}`} className="profile-role-pill" bg="light" text="dark">
+                              {role.roleName}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="profile-empty-value profile-empty-roles">
+                    <span className="profile-empty-icon" aria-hidden="true">i</span>
+                    <span>No roles assigned</span>
+                  </div>
+                )}
+              </div>
+
+              <Row className="g-2 profile-info-grid">
                 <Col sm={6}>
-                  <div className="profile-detail-tile">
+                  <div className="profile-detail-tile" tabIndex={0}>
                     <p className="profile-detail-label mb-1">Email</p>
-                    <p className="profile-detail-value mb-0">{getValue(profile.email)}</p>
+                    <p className="profile-detail-value mb-0">{renderValue(profile.email, { type: "email" })}</p>
                   </div>
                 </Col>
                 <Col sm={6}>
-                  <div className="profile-detail-tile">
+                  <div className="profile-detail-tile" tabIndex={0}>
                     <p className="profile-detail-label mb-1">Phone</p>
-                    <p className="profile-detail-value mb-0">{getValue(profile.phone)}</p>
+                    <p className="profile-detail-value mb-0">{renderValue(profile.phone)}</p>
                   </div>
                 </Col>
                 <Col sm={6}>
-                  <div className="profile-detail-tile">
+                  <div className="profile-detail-tile" tabIndex={0}>
                     <p className="profile-detail-label mb-1">Address</p>
-                    <p className="profile-detail-value mb-0">{getValue(profile.address)}</p>
+                    <p className="profile-detail-value mb-0">{renderValue(profile.address)}</p>
                   </div>
                 </Col>
                 <Col sm={6}>
-                  <div className="profile-detail-tile">
-                    <p className="profile-detail-label mb-1">Role</p>
-                    <p className="profile-detail-value mb-0">{roleSummary}</p>
-                  </div>
-                </Col>
-                <Col sm={6}>
-                  <div className="profile-detail-tile">
-                    <p className="profile-detail-label mb-1">Session User</p>
-                    <p className="profile-detail-value mb-0">
-                      {session?.username || session?.email || "Unknown"}
+                  <div className="profile-detail-tile" tabIndex={0}>
+                    <p className="profile-detail-label mb-1">Username</p>
+                    <p className="profile-detail-value mb-0 d-flex align-items-center justify-content-between gap-2">
+                      <span>{String(profile.username || "unknown")}</span>
+                      <button
+                        type="button"
+                        className="profile-mini-copy"
+                        onClick={() => void copyToClipboard(profile.username, "Username")}
+                      >
+                        Copy
+                      </button>
                     </p>
                   </div>
                 </Col>
                 <Col sm={6}>
-                  <div className="profile-detail-tile">
-                    <p className="profile-detail-label mb-1">Signed In</p>
-                    <p className="profile-detail-value mb-0">
-                      {session?.loginAt
-                        ? new Date(session.loginAt).toLocaleString()
-                        : "Unavailable"}
-                    </p>
+                  <div className="profile-detail-tile" tabIndex={0}>
+                    <p className="profile-detail-label mb-1">Company</p>
+                    <p className="profile-detail-value mb-0">{companyLabel}</p>
+                  </div>
+                </Col>
+                <Col sm={6}>
+                  <div className="profile-detail-tile" tabIndex={0}>
+                    <p className="profile-detail-label mb-1">Department</p>
+                    <p className="profile-detail-value mb-0">{departmentLabel}</p>
                   </div>
                 </Col>
               </Row>
@@ -377,9 +607,16 @@ export default function UserProfilePage() {
               <p className="text-muted mb-2">
                 Profile fields and password changes are restricted to administrators only.
               </p>
-              <p className="mb-0">
-                Send your request by email and include your username plus the exact changes needed.
-              </p>
+              {requestUpdateHref ? (
+                <div className="d-flex align-items-center gap-2 flex-wrap">
+                  <a href={requestUpdateHref} className="btn btn-sm btn-primary">
+                    Request Update
+                  </a>
+                  <p className="mb-0">Send your request by email and include your username plus exact changes needed.</p>
+                </div>
+              ) : (
+                <p className="mb-0">Contact your administrator to request profile updates.</p>
+              )}
             </Card.Body>
           </Card>
         </Col>
