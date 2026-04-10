@@ -22,6 +22,7 @@ Manage gutter quote projects from listing through pricing and work-order preview
 ## /gutter (Project List)
 
 - Loads project list and status setup values.
+- Displays persisted `total_project_price` from `gtr_t_projects` for each row.
 - Supports status updates and project deletion.
 - Save/update/delete feedback uses global toasts.
 - Uses cache keys:
@@ -39,7 +40,7 @@ Manage gutter quote projects from listing through pricing and work-order preview
   - header to gtr_t_projects
   - sections to gtr_m_project_sides
   - extras to gtr_m_project_extras
-- Writes deposit_percent on header.
+- Writes `deposit_percent` and `total_project_price` on header.
 - Invalidates project-related cache keys after save.
 
 ## /gutter/[id] (Edit)
@@ -47,7 +48,7 @@ Manage gutter quote projects from listing through pricing and work-order preview
 - Loads header + section + extras rows by project id.
 - Maps custom override columns to edit UI state.
 - Supports full header/child rewrite on save.
-- Writes deposit_percent on update.
+- Writes `deposit_percent` and recalculated `total_project_price` on update.
 - Invalidates and refetches cached project data after save.
 - Uses same compact form and preview structure as create flow.
 

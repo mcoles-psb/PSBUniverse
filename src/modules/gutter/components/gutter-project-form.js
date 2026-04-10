@@ -64,7 +64,6 @@ const MAX_DYNAMIC_SIDE_ROWS = 10;
 const MIN_SIDE_OR_DS_QTY = 1;
 const MAX_SIDE_OR_DS_QTY = 10;
 const CACHE_NAMESPACE = "psb-universe";
-const PROJECT_DATA_TTL_MS = 5 * 60 * 1000;
 const SETUP_CACHE_TTL_MS = 8 * 60 * 60 * 1000;
 
 const CACHE_KEYS = {
@@ -399,67 +398,21 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
     };
   }, []);
 
-  const fetchProjectPayload = useCallback(async (forceFresh) => {
-    const runProjectQuery = async ({ label, cacheKey, ttlMs, query }) => {
-      try {
-        const response = await getSupabaseSelectWithCache({
-          cacheKey,
-          namespace: CACHE_NAMESPACE,
-          ttlMs,
-          forceFresh,
-          query,
-        });
-        const data = response?.data;
-        if (data === null || data === undefined) {
-          return query?.single ? null : [];
-        }
-        return data;
-      } catch (error) {
-        console.error(`Failed loading ${label}`, error);
-        throw error;
-      }
-    };
+  const fetchProjectPayload = useCallback(async () => {
+    const response = await fetch(`/api/gutter/projects?projId=${encodeURIComponent(projectId)}`, {
+      method: "GET",
+      cache: "no-store",
+    });
 
-    const [projectHeader, projectSides, projectExtras] = await Promise.all([
-      runProjectQuery({
-        label: "project header",
-        cacheKey: CACHE_KEYS.projectDetail(projectId),
-        ttlMs: PROJECT_DATA_TTL_MS,
-        query: {
-          table: "gtr_t_projects",
-          select: "*",
-          filters: [{ column: "proj_id", op: "eq", value: projectId }],
-          single: true,
-        },
-      }),
-      runProjectQuery({
-        label: "project sides",
-        cacheKey: CACHE_KEYS.projectSides(projectId),
-        ttlMs: PROJECT_DATA_TTL_MS,
-        query: {
-          table: "gtr_m_project_sides",
-          select: "*",
-          filters: [{ column: "proj_id", op: "eq", value: projectId }],
-          orderBy: "side_index",
-        },
-      }),
-      runProjectQuery({
-        label: "project extras",
-        cacheKey: CACHE_KEYS.projectExtras(projectId),
-        ttlMs: PROJECT_DATA_TTL_MS,
-        query: {
-          table: "gtr_m_project_extras",
-          select: "*",
-          filters: [{ column: "proj_id", op: "eq", value: projectId }],
-          orderBy: "extra_id",
-        },
-      }),
-    ]);
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload?.error || payload?.message || "Unable to load project data");
+    }
 
     return {
-      projectHeader,
-      projectSides,
-      projectExtras,
+      projectHeader: payload?.projectHeader || null,
+      projectSides: Array.isArray(payload?.projectSides) ? payload.projectSides : [],
+      projectExtras: Array.isArray(payload?.projectExtras) ? payload.projectExtras : [],
     };
   }, [projectId]);
 
@@ -719,6 +672,23 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
       .filter(Boolean);
   }, [project, colorNameById, quoteResult]);
 
+  const totalEndCapsNeeded = useMemo(
+    () =>
+      sectionBreakdownRows.reduce(
+        (totals, row) => {
+          const right = Number(row?.endCapsRight);
+          const left = Number(row?.endCapsLeft);
+
+          return {
+            right: totals.right + (Number.isFinite(right) ? right : 0),
+            left: totals.left + (Number.isFinite(left) ? left : 0),
+          };
+        },
+        { right: 0, left: 0 }
+      ),
+    [sectionBreakdownRows]
+  );
+
   const extrasMaterialRows = useMemo(() => {
     if (!project?.extrasIncluded) return [];
     return (project.extras || [])
@@ -776,7 +746,6 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
     setSaving(true);
 
     try {
-      const now = new Date().toISOString();
       const headerPayload = {
         project_name: project.projectName,
         customer: project.customer,
@@ -799,51 +768,7 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
           ? toNumOrNull(project.manualLeafGuardRate)
           : null,
         deposit_percent: project.depositIncluded ? toNumOrNull(project.depositPercent) : null,
-        updated_at: now,
       };
-
-      let currentProjId = projectId;
-
-      if (isEdit) {
-        const { error: headerError } = await supabase
-          .from("gtr_t_projects")
-          .update(headerPayload)
-          .eq("proj_id", projectId);
-
-        if (headerError) {
-          throw new Error("Error saving project: " + headerError.message);
-        }
-
-        const { error: clearSidesError } = await supabase
-          .from("gtr_m_project_sides")
-          .delete()
-          .eq("proj_id", projectId);
-
-        if (clearSidesError) {
-          throw new Error("Error clearing existing sides: " + clearSidesError.message);
-        }
-
-        const { error: clearExtrasError } = await supabase
-          .from("gtr_m_project_extras")
-          .delete()
-          .eq("proj_id", projectId);
-
-        if (clearExtrasError) {
-          throw new Error("Error clearing existing extras: " + clearExtrasError.message);
-        }
-      } else {
-        const { data: insertedProject, error: headerError } = await supabase
-          .from("gtr_t_projects")
-          .insert(headerPayload)
-          .select("proj_id")
-          .single();
-
-        if (headerError || !insertedProject?.proj_id) {
-          throw new Error("Error saving project header: " + (headerError?.message || "Unknown error"));
-        }
-
-        currentProjId = insertedProject.proj_id;
-      }
 
       const sideRows = (project.sections || [])
         .map((section, index) => {
@@ -864,7 +789,6 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
           if (!hasAnyValue) return null;
 
           return {
-            proj_id: toIntOrNull(currentProjId),
             side_index: index + 1,
             segments,
             length,
@@ -876,17 +800,6 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
         })
         .filter(Boolean);
 
-      if (sideRows.length > 0) {
-        const { error: sidesError } = await supabase.from("gtr_m_project_sides").insert(sideRows);
-
-        if (sidesError) {
-          if (!isEdit) {
-            await supabase.from("gtr_t_projects").delete().eq("proj_id", currentProjId);
-          }
-          throw new Error("Error saving sides: " + sidesError.message);
-        }
-      }
-
       const extraRows = project.extrasIncluded
         ? (project.extras || [])
             .map((extra) => {
@@ -896,7 +809,6 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
               const hasAnyValue = name !== "" || quantity !== null || unitPrice !== null;
               if (!hasAnyValue) return null;
               return {
-                proj_id: toIntOrNull(currentProjId),
                 name,
                 quantity,
                 unit_price: unitPrice,
@@ -905,17 +817,28 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
             .filter(Boolean)
         : [];
 
-      if (extraRows.length > 0) {
-        const { error: extrasError } = await supabase.from("gtr_m_project_extras").insert(extraRows);
+      const response = await fetch("/api/gutter/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+        body: JSON.stringify({
+          isEdit,
+          projectId: isEdit ? toIntOrNull(projectId) : null,
+          header: headerPayload,
+          sides: sideRows,
+          extras: extraRows,
+        }),
+      });
 
-        if (extrasError) {
-          if (!isEdit) {
-            await supabase.from("gtr_m_project_sides").delete().eq("proj_id", currentProjId);
-            await supabase.from("gtr_t_projects").delete().eq("proj_id", currentProjId);
-          }
-          throw new Error("Error saving extras: " + extrasError.message);
-        }
+      const savePayload = await response.json().catch(() => ({}));
+
+      if (!response.ok || !savePayload?.projId) {
+        throw new Error(savePayload?.error || savePayload?.message || "Error saving project.");
       }
+
+      const currentProjId = savePayload.projId;
 
       invalidateCacheKeys(
         [
@@ -1006,6 +929,11 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
           <Button variant="success" size="sm" onClick={saveProject} disabled={saving || refreshingSetup}>
             {saving ? "Saving..." : "Save Project"}
           </Button>
+          {isEdit ? (
+            <Link href={`/gutter/${projectId}/work-order`} className="btn btn-outline-primary btn-sm">
+              Work Order
+            </Link>
+          ) : null}
           <Button variant="outline-secondary" size="sm" onClick={() => window.print()}>
             Print / PDF
           </Button>
@@ -1778,24 +1706,34 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
                                     </div>
                                   </div>
                                 </div>
-
-                                <div className="material-section-block">
-                                  <div className="material-section-block-title">End Caps Needed</div>
-                                  <div className="material-section-fields material-section-fields-downspout">
-                                    <div className="material-section-field">
-                                      <span className="material-section-label">Right</span>
-                                      <span className="material-section-value">{displayIntegerOrDash(row.endCapsRight)}</span>
-                                    </div>
-                                    <div className="material-section-field">
-                                      <span className="material-section-label">Left</span>
-                                      <span className="material-section-value">{displayIntegerOrDash(row.endCapsLeft)}</span>
-                                    </div>
-                                  </div>
-                                </div>
                               </article>
                             ))}
                           </div>
                         </div>
+
+                        {sectionBreakdownRows.length > 0 ? (
+                          <div className="mb-3">
+                            <div className="fw-semibold mb-2">End Caps Totals</div>
+                            <article className="material-section-card material-section-card-compact">
+                              <div className="material-section-block">
+                                <div className="material-section-fields material-section-fields-downspout">
+                                  <div className="material-section-field">
+                                    <span className="material-section-label">Total Right End Caps Needed</span>
+                                    <span className="material-section-value">
+                                      {displayIntegerOrDash(totalEndCapsNeeded.right)}
+                                    </span>
+                                  </div>
+                                  <div className="material-section-field">
+                                    <span className="material-section-label">Total Left End Caps Needed</span>
+                                    <span className="material-section-value">
+                                      {displayIntegerOrDash(totalEndCapsNeeded.left)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </article>
+                          </div>
+                        ) : null}
 
                         {selectedLeafGuardName ? (
                           <div className="mb-3">
@@ -1844,14 +1782,6 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
                       </div>
                     )}
                   </div>
-
-                  {isEdit ? (
-                    <div className="d-flex flex-wrap gap-2 mt-3 justify-content-end">
-                      <Link href={`/gutter/${projectId}/work-order`} className="btn btn-outline-primary btn-sm">
-                        Work Order
-                      </Link>
-                    </div>
-                  ) : null}
                 </>
               ) : (
                 <p className="text-muted">Enter project details to see preview.</p>

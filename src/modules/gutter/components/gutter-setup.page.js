@@ -220,7 +220,7 @@ export default function GutterSetupPage() {
           namespace: CACHE_NAMESPACE,
           forceFresh,
           query: {
-            table: "gtr_s_leaf_guards",
+            table: "core_s_leaf_guards",
             select: "*",
             orderBy: "leaf_guard_id",
           },
@@ -230,7 +230,7 @@ export default function GutterSetupPage() {
           namespace: CACHE_NAMESPACE,
           forceFresh,
           query: {
-            table: "gtr_s_discounts",
+            table: "core_s_discounts",
             select: "*",
             orderBy: "discount_id",
           },
@@ -240,7 +240,7 @@ export default function GutterSetupPage() {
           namespace: CACHE_NAMESPACE,
           forceFresh,
           query: {
-            table: "gtr_s_trip_rates",
+            table: "core_s_trip_rates",
             select: "*",
             orderBy: "trip_id",
           },
@@ -279,7 +279,7 @@ export default function GutterSetupPage() {
       <Accordion defaultActiveKey="leaf_guards">
         <SetupTable
           title="Leaf Guard"
-          tableName="gtr_s_leaf_guards"
+          tableName="core_s_leaf_guards"
           pkColumn="leaf_guard_id"
           cacheNamespace={CACHE_NAMESPACE}
           cacheKey={CACHE_KEYS.leafGuards}
@@ -292,7 +292,7 @@ export default function GutterSetupPage() {
         />
         <SetupTable
           title="Discounts"
-          tableName="gtr_s_discounts"
+          tableName="core_s_discounts"
           pkColumn="discount_id"
           cacheNamespace={CACHE_NAMESPACE}
           cacheKey={CACHE_KEYS.discounts}
@@ -305,7 +305,7 @@ export default function GutterSetupPage() {
         />
         <SetupTable
           title="Trip Fee Rates"
-          tableName="gtr_s_trip_rates"
+          tableName="core_s_trip_rates"
           pkColumn="trip_id"
           cacheNamespace={CACHE_NAMESPACE}
           cacheKey={CACHE_KEYS.tripRates}
@@ -320,4 +320,5 @@ export default function GutterSetupPage() {
     </Container>
   );
 }
+
 

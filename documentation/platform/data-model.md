@@ -58,12 +58,12 @@ Referenced fields include:
 
 ## Gutter Setup Tables
 
-- gtr_s_statuses
-- gtr_s_colors
-- gtr_s_manufacturers
-- gtr_s_leaf_guards
-- gtr_s_discounts
-- gtr_s_trip_rates
+- core_s_statuses
+- core_s_colors
+- core_s_manufacturers
+- core_s_leaf_guards
+- core_s_discounts
+- core_s_trip_rates
 
 ## Company Profile Table
 

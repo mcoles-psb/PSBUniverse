@@ -11,18 +11,7 @@ import {
   Card,
   Table,
 } from "react-bootstrap";
-import { supabase } from "@/infrastructure/supabase/client";
-import { createCacheKey } from "@/core/cache";
-import { getSupabaseSelectWithCache } from "@/core/cache";
 import { toastError, toastInfo } from "@/shared/utils/toast";
-
-const CACHE_NAMESPACE = "psb-universe";
-const PROJECT_DATA_TTL_MS = 5 * 60 * 1000;
-const CACHE_KEYS = {
-  colors: createCacheKey("setup", "colors"),
-  projectDetail: (projId) => createCacheKey("projects", "detail", projId),
-  projectSides: (projId) => createCacheKey("projects", "sides", projId),
-};
 
 export default function WorkOrderPage({ params }) {
   const { id } = use(params);
@@ -36,52 +25,24 @@ export default function WorkOrderPage({ params }) {
   });
   const [loading, setLoading] = useState(true);
 
-  const loadData = useCallback(async (options = {}) => {
-    const forceFresh = Boolean(options.forceFresh);
-
+  const loadData = useCallback(async () => {
     try {
-      const [projectRes, sidesRes, colorsRes] = await Promise.all([
-        getSupabaseSelectWithCache({
-          cacheKey: CACHE_KEYS.projectDetail(id),
-          namespace: CACHE_NAMESPACE,
-          ttlMs: PROJECT_DATA_TTL_MS,
-          forceFresh,
-          query: {
-            table: "gtr_t_projects",
-            select: "*",
-            filters: [{ column: "proj_id", op: "eq", value: id }],
-            single: true,
-          },
-        }),
-        getSupabaseSelectWithCache({
-          cacheKey: CACHE_KEYS.projectSides(id),
-          namespace: CACHE_NAMESPACE,
-          ttlMs: PROJECT_DATA_TTL_MS,
-          forceFresh,
-          query: {
-            table: "gtr_m_project_sides",
-            select: "*",
-            filters: [{ column: "proj_id", op: "eq", value: id }],
-            orderBy: "side_index",
-          },
-        }),
-        getSupabaseSelectWithCache({
-          cacheKey: CACHE_KEYS.colors,
-          namespace: CACHE_NAMESPACE,
-          forceFresh,
-          query: {
-            table: "gtr_s_colors",
-            select: "color_id, name",
-          },
-        }),
-      ]);
+      const response = await fetch(`/api/gutter/projects?projId=${encodeURIComponent(id)}`, {
+        method: "GET",
+        cache: "no-store",
+      });
 
-      const header = projectRes.data;
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error || payload?.message || "Unable to load work-order data");
+      }
+
+      const header = payload?.projectHeader || null;
       if (header) {
         const colorMap = Object.fromEntries(
-          (colorsRes.data || []).map((c) => [String(c.color_id), c.name])
+          (Array.isArray(payload?.colors) ? payload.colors : []).map((c) => [String(c.color_id), c.name])
         );
-        const sections = (sidesRes.data || []).map((side) => ({
+        const sections = (Array.isArray(payload?.projectSides) ? payload.projectSides : []).map((side) => ({
           color: colorMap[String(side.gutter_color_id)] || "--",
           sides: side.segments,
           length: side.length,
@@ -97,13 +58,16 @@ export default function WorkOrderPage({ params }) {
           date: header.date,
           sections,
         });
+      } else {
+        setProject(null);
       }
     } catch (error) {
       console.error("Failed to load work-order data", error);
       toastError("Error loading work-order data.", "Work Order");
+      setProject(null);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }, [id]);
 
   useEffect(() => {

@@ -225,7 +225,7 @@ export default function GlobalSetupPage() {
           namespace: CACHE_NAMESPACE,
           forceFresh,
           query: {
-            table: "gtr_s_statuses",
+            table: "core_s_statuses",
             select: "*",
             orderBy: "status_id",
           },
@@ -235,7 +235,7 @@ export default function GlobalSetupPage() {
           namespace: CACHE_NAMESPACE,
           forceFresh,
           query: {
-            table: "gtr_s_colors",
+            table: "core_s_colors",
             select: "*",
             orderBy: "color_id",
           },
@@ -245,7 +245,7 @@ export default function GlobalSetupPage() {
           namespace: CACHE_NAMESPACE,
           forceFresh,
           query: {
-            table: "gtr_s_manufacturers",
+            table: "core_s_manufacturers",
             select: "*",
             orderBy: "manufacturer_id",
           },
@@ -285,7 +285,7 @@ export default function GlobalSetupPage() {
       <Accordion defaultActiveKey="statuses">
         <SetupTable
           title="Status List"
-          tableName="gtr_s_statuses"
+          tableName="core_s_statuses"
           pkColumn="status_id"
           cacheNamespace={CACHE_NAMESPACE}
           cacheKey={CACHE_KEYS.statuses}
@@ -299,7 +299,7 @@ export default function GlobalSetupPage() {
         />
         <SetupTable
           title="Color Names"
-          tableName="gtr_s_colors"
+          tableName="core_s_colors"
           pkColumn="color_id"
           cacheNamespace={CACHE_NAMESPACE}
           cacheKey={CACHE_KEYS.colors}
@@ -309,7 +309,7 @@ export default function GlobalSetupPage() {
         />
         <SetupTable
           title="Manufacturers"
-          tableName="gtr_s_manufacturers"
+          tableName="core_s_manufacturers"
           pkColumn="manufacturer_id"
           cacheNamespace={CACHE_NAMESPACE}
           cacheKey={CACHE_KEYS.manufacturers}
@@ -324,4 +324,5 @@ export default function GlobalSetupPage() {
     </Container>
   );
 }
+
 

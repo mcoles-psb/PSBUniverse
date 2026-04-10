@@ -1,34 +1,34 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { getServerSupabaseClient } from "@/infrastructure/supabase/server";
 
 const SETUP_QUERIES = {
   statuses: {
-    table: "gtr_s_statuses",
+    table: "core_s_statuses",
     select: "*",
     orderBy: "status_id",
   },
   colors: {
-    table: "gtr_s_colors",
+    table: "core_s_colors",
     select: "*",
     orderBy: "color_id",
   },
   manufacturers: {
-    table: "gtr_s_manufacturers",
+    table: "core_s_manufacturers",
     select: "*",
     orderBy: "manufacturer_id",
   },
   leafGuards: {
-    table: "gtr_s_leaf_guards",
+    table: "core_s_leaf_guards",
     select: "*",
     orderBy: "leaf_guard_id",
   },
   tripRates: {
-    table: "gtr_s_trip_rates",
+    table: "core_s_trip_rates",
     select: "*",
     orderBy: "trip_id",
   },
   discounts: {
-    table: "gtr_s_discounts",
+    table: "core_s_discounts",
     select: "*",
     orderBy: "discount_id",
   },
@@ -95,3 +95,4 @@ export async function GET() {
     );
   }
 }
+

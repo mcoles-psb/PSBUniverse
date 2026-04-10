@@ -1,4 +1,4 @@
-# Global Setup Application
+﻿# Global Setup Application
 
 Route: /setup/global
 
@@ -8,9 +8,9 @@ Manage shared setup/reference tables used across modules.
 
 ## Managed Tables
 
-- gtr_s_statuses
-- gtr_s_colors
-- gtr_s_manufacturers
+- core_s_statuses
+- core_s_colors
+- core_s_manufacturers
 
 ## Behavior
 
@@ -26,3 +26,4 @@ Manage shared setup/reference tables used across modules.
 - Invalidates table-specific cache key on save.
 - Status updates also invalidate projects:list so gutter list status labels refresh immediately.
 - Forces fresh refetch after save.
+

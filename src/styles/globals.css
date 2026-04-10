@@ -1135,6 +1135,10 @@ textarea.quote-field-control {
   transition: box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease;
 }
 
+.material-section-card-compact {
+  min-height: 0;
+}
+
 .material-section-card:hover {
   transform: translateY(-1px);
   border-color: #ccdceb;
@@ -1915,5 +1919,428 @@ textarea.quote-field-control {
 
   .portal-login-brand {
     display: none;
+  }
+}
+
+.gutter-workspace {
+  min-height: calc(100vh - 90px);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(61, 97, 168, 0.12), transparent 36%),
+    radial-gradient(circle at 98% 0%, rgba(35, 153, 125, 0.1), transparent 34%),
+    linear-gradient(180deg, #edf2f8 0%, #e9eff6 100%);
+}
+
+.gutter-workspace-shell {
+  max-width: 1380px;
+}
+
+.gutter-workspace-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.gutter-hero-title {
+  font-size: clamp(1.7rem, 2.4vw, 2.35rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #10273d;
+  font-weight: 800;
+}
+
+.gutter-hero-subtitle {
+  color: #57697b;
+  max-width: 72ch;
+  font-size: 0.97rem;
+}
+
+.gutter-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.gutter-secondary-action {
+  border-color: #ccd9e6;
+  color: #2f4760;
+  background: #f8fbff;
+  font-weight: 600;
+}
+
+.gutter-primary-action {
+  background: linear-gradient(132deg, #1d58ba 0%, #2f6fd3 100%);
+  border: none;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 10px 20px rgba(31, 84, 181, 0.24);
+}
+
+.gutter-primary-action:hover,
+.gutter-primary-action:focus {
+  color: #ffffff;
+  background: linear-gradient(132deg, #184a9d 0%, #285eb3 100%);
+}
+
+.gutter-stats-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 360px);
+  gap: 0.75rem;
+}
+
+.gutter-stat-card {
+  border-radius: 0.9rem;
+  background: #ffffff;
+  border: 1px solid #d7e2ee;
+  box-shadow: 0 8px 20px rgba(21, 50, 74, 0.07);
+  border-left: 4px solid #2d68c5;
+  padding: 0.75rem 0.85rem;
+}
+
+.gutter-stat-awaiting {
+  border-left-color: #0d9488;
+}
+
+.gutter-stat-discount {
+  border-left-color: #8b5cf6;
+}
+
+.gutter-stat-deposit {
+  border-left-color: #f59e0b;
+}
+
+.gutter-stat-total-price {
+  border-left-color: #2563eb;
+}
+
+.gutter-stat-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6a7a8b;
+  font-size: 0.67rem;
+  font-weight: 700;
+}
+
+.gutter-stat-value {
+  color: #132f46;
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.gutter-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.gutter-search-box {
+  position: relative;
+}
+
+.gutter-search-input {
+  min-height: 36px;
+  border: 1px solid #c8d6e3;
+  border-radius: 0.72rem;
+  padding-left: 0.75rem;
+  background: #ffffff;
+}
+
+.gutter-search-input:focus {
+  border-color: #5d86cb;
+  box-shadow: 0 0 0 0.16rem rgba(64, 114, 194, 0.18);
+}
+
+.gutter-status-filter {
+  min-width: 210px;
+  border: 1px solid #c8d6e3;
+  border-radius: 0.72rem;
+  min-height: 36px;
+}
+
+.gutter-toolbar-count {
+  color: #5f7286;
+  font-size: 0.87rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.gutter-table-shell {
+  background: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid #d7e2ee;
+  box-shadow: 0 14px 26px rgba(19, 45, 68, 0.08);
+  overflow: visible;
+}
+
+.gutter-table-shell .table-responsive {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.gutter-project-table {
+  margin-bottom: 0;
+}
+
+.gutter-project-table thead th {
+  border-bottom: 1px solid #dbe5ef;
+  background: #f7faff;
+  color: #607285;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.76rem 0.72rem;
+  white-space: nowrap;
+}
+
+.gutter-project-table tbody td {
+  border-top: 1px solid #edf2f8;
+  padding: 0.76rem 0.72rem;
+  vertical-align: middle;
+}
+
+.gutter-project-row {
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+.gutter-project-row:hover {
+  background: #f8fbff;
+}
+
+.gutter-project-row-menu-open {
+  background: #eef5ff;
+}
+
+.gutter-row-title {
+  font-size: 0.9rem;
+  color: #10293f;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.gutter-row-label {
+  font-size: 0.84rem;
+  color: #1f3e57;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.gutter-row-subtitle {
+  font-size: 0.74rem;
+  color: #677b90;
+  line-height: 1.25;
+}
+
+.gutter-inline-link {
+  color: #1e5aa8;
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.gutter-inline-link:hover,
+.gutter-inline-link:focus {
+  text-decoration: underline;
+  color: #184a8a;
+}
+
+.gutter-total-value {
+  font-size: 0.9rem;
+  color: #0f2f4b;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.gutter-total-subnote {
+  font-size: 0.72rem;
+  color: #5f7489;
+  line-height: 1.2;
+}
+
+.gutter-status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.22rem 0.53rem;
+  font-size: 0.69rem;
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid transparent;
+}
+
+.gutter-status-awaiting {
+  background: #ecfdf5;
+  color: #166534;
+  border-color: #b8eccd;
+}
+
+.gutter-status-complete {
+  background: #ecfeff;
+  color: #0f766e;
+  border-color: #bdeef1;
+}
+
+.gutter-status-cancelled {
+  background: #fff1f2;
+  color: #b91c1c;
+  border-color: #f7c9ce;
+}
+
+.gutter-status-draft {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #c9dcff;
+}
+
+.gutter-status-default {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #d8e0e8;
+}
+
+.gutter-actions-toggle {
+  border-color: #cfdae5;
+  color: #37526b;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 0.58rem;
+  min-width: 74px;
+}
+
+.gutter-actions-toggle:hover,
+.gutter-actions-toggle:focus,
+.gutter-actions-toggle:active {
+  color: #1f3b56;
+  border-color: #b8cbe0;
+  background: #f4f8fd;
+}
+
+.gutter-actions-menu {
+  z-index: 1085;
+  border-radius: 0.72rem;
+  border-color: #d0dce8;
+  box-shadow: 0 12px 24px rgba(18, 41, 63, 0.14);
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+.gutter-actions-menu .dropdown-item {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #26445e;
+}
+
+.gutter-actions-menu .dropdown-item:hover,
+.gutter-actions-menu .dropdown-item:focus {
+  background: #edf4ff;
+  color: #15334f;
+}
+
+.gutter-row-menu {
+  position: fixed;
+  width: 260px;
+  z-index: 1200;
+  border: 1px solid #d0dce8;
+  border-radius: 0.72rem;
+  background: #ffffff;
+  box-shadow: 0 14px 28px rgba(18, 41, 63, 0.18);
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
+.gutter-row-menu-heading {
+  margin: 0;
+  padding: 0.24rem 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #71849a;
+}
+
+.gutter-row-menu-divider {
+  border-top: 1px solid #e7eef6;
+  margin: 0.25rem 0;
+}
+
+.gutter-row-menu-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 0.42rem 0.78rem;
+  font-size: 0.79rem;
+  font-weight: 600;
+  color: #1e405e;
+}
+
+.gutter-row-menu-item:hover,
+.gutter-row-menu-item:focus {
+  background: #edf4ff;
+  color: #15334f;
+}
+
+.gutter-row-menu-item-danger {
+  color: #c1132f;
+}
+
+.gutter-row-menu-item-danger:hover,
+.gutter-row-menu-item-danger:focus {
+  background: #fff1f3;
+  color: #9f1027;
+}
+
+.gutter-empty-state {
+  text-align: center;
+}
+
+.gutter-table-footer {
+  border-top: 1px solid #e7eef6;
+  padding: 0.62rem 0.75rem;
+  background: #f9fbff;
+}
+
+@media (max-width: 1199px) {
+  .gutter-stats-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gutter-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .gutter-toolbar-count {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+}
+
+@media (max-width: 767px) {
+  .gutter-workspace-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .gutter-hero-actions {
+    width: 100%;
+  }
+
+  .gutter-hero-actions .btn {
+    flex: 1;
+  }
+
+  .gutter-stats-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gutter-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gutter-status-filter {
+    min-width: 0;
   }
 }

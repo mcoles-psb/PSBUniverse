@@ -42,8 +42,8 @@ RELATED UI PAGES:
 - /gutter/[id]
 - /gutter/[id]/work-order
 RELATIONSHIPS:
-- Outgoing FK: downspout_color_id -> gtr_s_colors.color_id
-- Outgoing FK: gutter_color_id -> gtr_s_colors.color_id
+- Outgoing FK: downspout_color_id -> core_s_colors.color_id
+- Outgoing FK: gutter_color_id -> core_s_colors.color_id
 - Outgoing FK: proj_id -> gtr_t_projects.proj_id
 SCHEMA NAME: public
 COLUMNS:
@@ -58,9 +58,9 @@ COLUMNS:
 - downspout_color_id
 - created_at
 
-## gtr_s_colors
+## core_s_colors
 
-TABLE NAME: gtr_s_colors
+TABLE NAME: core_s_colors
 PURPOSE: Master lookup for available color options used in gutter and downspout selections.
 USES:
 - Populates color dropdown choices in gutter setup and project forms.
@@ -82,9 +82,9 @@ COLUMNS:
 - name
 - created_at
 
-## gtr_s_discounts
+## core_s_discounts
 
-TABLE NAME: gtr_s_discounts
+TABLE NAME: core_s_discounts
 PURPOSE: Master lookup for predefined discount percentages that can be applied to gutter quotes.
 USES:
 - Provides selectable discount presets in gutter quote forms.
@@ -105,9 +105,9 @@ COLUMNS:
 - description
 - created_at
 
-## gtr_s_leaf_guards
+## core_s_leaf_guards
 
-TABLE NAME: gtr_s_leaf_guards
+TABLE NAME: core_s_leaf_guards
 PURPOSE: Master lookup for leaf guard products and their default pricing.
 USES:
 - Provides selectable leaf guard options in project quotes.
@@ -128,9 +128,9 @@ COLUMNS:
 - price
 - created_at
 
-## gtr_s_manufacturers
+## core_s_manufacturers
 
-TABLE NAME: gtr_s_manufacturers
+TABLE NAME: core_s_manufacturers
 PURPOSE: Master lookup for manufacturers and their default material rates.
 USES:
 - Populates manufacturer selection in gutter project forms.
@@ -151,9 +151,9 @@ COLUMNS:
 - rate
 - created_at
 
-## gtr_s_statuses
+## core_s_statuses
 
-TABLE NAME: gtr_s_statuses
+TABLE NAME: core_s_statuses
 PURPOSE: Master lookup for gutter project status labels and descriptions.
 USES:
 - Populates status options in project list filters and editors.
@@ -174,9 +174,9 @@ COLUMNS:
 - name
 - description
 
-## gtr_s_trip_rates
+## core_s_trip_rates
 
-TABLE NAME: gtr_s_trip_rates
+TABLE NAME: core_s_trip_rates
 PURPOSE: Master lookup for trip fee presets used when pricing gutter projects.
 USES:
 - Populates trip rate choices in project creation and editing.
@@ -205,13 +205,14 @@ COLUMNS:
 ## gtr_t_projects
 
 TABLE NAME: gtr_t_projects
-PURPOSE: Main transaction table that stores the project header, selected setup references, and pricing overrides for each gutter quote.
+PURPOSE: Main transaction table that stores the project header, selected setup references, pricing overrides, and persisted total price for each gutter quote.
 USES:
 - Stores project-level data used by list, detail, edit, and work-order pages.
 - Holds selected status, manufacturer, discount, trip, and leaf guard references.
-- Persists pricing override and deposit fields used in final quote output.
+- Persists pricing override, deposit, and total project price fields used in final quote output.
 RELATED API ROUTES:
-- No dedicated /api route (currently direct Supabase access in gutter pages).
+- /api/gutter/projects
+- /api/gutter/setup
 RELATED UI PAGES:
 - /gutter
 - /gutter/new
@@ -220,11 +221,11 @@ RELATED UI PAGES:
 RELATIONSHIPS:
 - Outgoing FK: created_by -> psb_s_user.user_id
 - Outgoing FK: updated_by -> psb_s_user.user_id
-- Outgoing FK: discount_id -> gtr_s_discounts.discount_id
-- Outgoing FK: leaf_guard_id -> gtr_s_leaf_guards.leaf_guard_id
-- Outgoing FK: manufacturer_id -> gtr_s_manufacturers.manufacturer_id
-- Outgoing FK: status_id -> gtr_s_statuses.status_id
-- Outgoing FK: trip_id -> gtr_s_trip_rates.trip_id
+- Outgoing FK: discount_id -> core_s_discounts.discount_id
+- Outgoing FK: leaf_guard_id -> core_s_leaf_guards.leaf_guard_id
+- Outgoing FK: manufacturer_id -> core_s_manufacturers.manufacturer_id
+- Outgoing FK: status_id -> core_s_statuses.status_id
+- Outgoing FK: trip_id -> core_s_trip_rates.trip_id
 - Incoming FK: gtr_m_project_extras.proj_id -> proj_id
 - Incoming FK: gtr_m_project_sides.proj_id -> proj_id
 SCHEMA NAME: public
@@ -247,6 +248,7 @@ COLUMNS:
 - cstm_discount_percentage
 - cstm_leaf_guard_price
 - deposit_percent
+- total_project_price
 - created_by
 - updated_by
 
@@ -560,8 +562,8 @@ RELATIONSHIPS:
 - Outgoing FK: comp_id -> psb_s_company.comp_id
 - Outgoing FK: dept_id -> psb_s_department.dept_id
 - Outgoing FK: status_id -> psb_s_status.status_id
-- Incoming FK: gtr_s_trip_rates.created_by -> user_id
-- Incoming FK: gtr_s_trip_rates.updated_by -> user_id
+- Incoming FK: core_s_trip_rates.created_by -> user_id
+- Incoming FK: core_s_trip_rates.updated_by -> user_id
 - Incoming FK: gtr_t_projects.created_by -> user_id
 - Incoming FK: gtr_t_projects.updated_by -> user_id
 - Incoming FK: psb_m_userapproleaccess.user_id -> user_id
@@ -594,4 +596,5 @@ COLUMNS:
 - updated_at
 - created_by
 - updated_by
+
 

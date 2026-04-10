@@ -1,4 +1,4 @@
-# Gutter Setup Application
+﻿# Gutter Setup Application
 
 Route: /setup/gutter
 
@@ -8,9 +8,9 @@ Manage gutter-specific setup reference values.
 
 ## Managed Tables
 
-- gtr_s_leaf_guards
-- gtr_s_discounts
-- gtr_s_trip_rates
+- core_s_leaf_guards
+- core_s_discounts
+- core_s_trip_rates
 
 ## Behavior
 
@@ -24,3 +24,4 @@ Manage gutter-specific setup reference values.
 - Uses cached reads for all managed setup tables.
 - Invalidates table cache key on save.
 - Forces fresh refetch after save.
+
