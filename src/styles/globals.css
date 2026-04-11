@@ -1510,6 +1510,148 @@ textarea.quote-field-control {
   padding: 0.2rem 0.38rem;
 }
 
+@media print {
+  @page {
+    margin: 6mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body.gutter-quote-print-mode .app-header {
+    display: none !important;
+  }
+
+  body.gutter-quote-print-mode .app-shell-body {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .gutter-quote-review-page {
+    max-width: none !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .gutter-quote-review-page .gutter-print-toolbar,
+  .gutter-quote-review-page .gutter-quote-form-pane {
+    display: none !important;
+  }
+
+  .gutter-quote-review-page .gutter-quote-review-grid {
+    display: block !important;
+  }
+
+  .gutter-quote-review-page .gutter-quote-preview-pane {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+
+  .gutter-quote-review-page .quote-preview-shell {
+    margin: 0 !important;
+  }
+
+  .gutter-quote-review-page .quote-preview-shell > .card-header {
+    padding-top: 0 !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .gutter-quote-review-page .quote-preview-shell > .card-body {
+    padding: 0 !important;
+  }
+
+  .gutter-quote-review-page .quote-document {
+    max-width: none !important;
+    margin: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0.45rem !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+
+  .gutter-quote-review-page .quote-document h4 {
+    font-size: 18px !important;
+    margin-bottom: 0.2rem !important;
+  }
+
+  .gutter-quote-review-page .quote-document h5 {
+    font-size: 15px !important;
+    margin-bottom: 0.35rem !important;
+  }
+
+  .gutter-quote-review-page .quote-document .small,
+  .gutter-quote-review-page .quote-document .text-muted {
+    font-size: 10px !important;
+  }
+
+  .gutter-quote-review-page .quote-divider {
+    margin-top: 0.3rem !important;
+    margin-bottom: 0.3rem !important;
+  }
+
+  .gutter-quote-review-page .quote-pricing-summary {
+    gap: 0.08rem !important;
+  }
+
+  .gutter-quote-review-page .quote-price-row {
+    font-size: 11px !important;
+    margin: 0 !important;
+  }
+
+  .gutter-quote-review-page .quote-price-subline {
+    margin: -0.02rem 0 0.05rem 0.6rem !important;
+    font-size: 10px !important;
+  }
+
+  .gutter-quote-review-page .quote-total-label,
+  .gutter-quote-review-page .quote-total-value,
+  .gutter-quote-review-page .quote-balance-value {
+    font-size: 12px !important;
+  }
+
+  .gutter-quote-review-page .material-section-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    min-height: 0 !important;
+    padding: 0.32rem 0.38rem !important;
+    border-radius: 0.36rem !important;
+    box-shadow: none !important;
+  }
+
+  .gutter-quote-review-page .material-sections-stack {
+    gap: 0.26rem !important;
+  }
+
+  .gutter-quote-review-page .material-section-header,
+  .gutter-quote-review-page .material-section-block-title,
+  .gutter-quote-review-page .material-section-label {
+    font-size: 9px !important;
+    margin-bottom: 0.1rem !important;
+  }
+
+  .gutter-quote-review-page .material-section-block {
+    padding: 0.22rem 0.28rem !important;
+    border-radius: 0.3rem !important;
+  }
+
+  .gutter-quote-review-page .material-section-block + .material-section-block {
+    margin-top: 0.16rem !important;
+  }
+
+  .gutter-quote-review-page .material-section-field {
+    min-height: 18px !important;
+  }
+
+  .gutter-quote-review-page .material-section-value {
+    font-size: 10px !important;
+  }
+}
+
 .quote-total-label {
   font-size: 14px;
   font-weight: 700;

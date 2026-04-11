@@ -509,6 +509,16 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
     return () => clearTimeout(timer);
   }, [loadData]);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+
+    document.body.classList.add("gutter-quote-print-mode");
+
+    return () => {
+      document.body.classList.remove("gutter-quote-print-mode");
+    };
+  }, []);
+
   const refreshSetupOptions = useCallback(async () => {
     setRefreshingSetup(true);
     try {
@@ -907,8 +917,8 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
   const hasDiscount = discountAmount > 0;
 
   return (
-    <Container className="py-4" style={{ maxWidth: 1320 }}>
-      <div className="d-flex justify-content-between align-items-center mb-3">
+    <Container className="py-4 gutter-quote-review-page" style={{ maxWidth: 1320 }}>
+      <div className="d-flex justify-content-between align-items-center mb-3 gutter-print-toolbar">
         <div className="d-flex align-items-center">
           <Link href="/gutter" className="back-link me-3">
             <i className="bi bi-arrow-left" aria-hidden="true" /> Back
@@ -934,7 +944,7 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
               Work Order
             </Link>
           ) : null}
-          <Button variant="outline-secondary" size="sm" onClick={() => window.print()}>
+          <Button type="button" variant="outline-secondary" size="sm" onClick={() => window.print()}>
             Print / PDF
           </Button>
           <Button
@@ -949,8 +959,8 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
         </div>
       </div>
 
-      <Row className="g-3">
-        <Col lg={7}>
+      <Row className="g-3 gutter-quote-review-grid">
+        <Col lg={7} className="gutter-quote-form-pane">
           <Card className="mb-3 gutter-form-card">
             <Card.Header className="gutter-section-header">Project Details</Card.Header>
             <Card.Body className="gutter-card-body">
@@ -1531,7 +1541,7 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
           </Card>
         </Col>
 
-        <Col lg={5}>
+        <Col lg={5} className="gutter-quote-preview-pane">
           <Card className="border-0 bg-transparent quote-preview-shell">
             <Card.Header className="gutter-section-header bg-transparent px-0">Quote Preview</Card.Header>
             <Card.Body className="px-0">
