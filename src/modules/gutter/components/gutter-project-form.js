@@ -1572,94 +1572,100 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
 
                     <div className="quote-divider my-2" />
 
-                    <div className="mb-4">
-                      <div className="small text-uppercase text-muted fw-semibold mb-2">Project Details</div>
-                      <div className="d-flex justify-content-between py-1">
-                        <span className="text-muted">Customer</span>
-                        <span className="fw-medium text-end ms-3">{displayOrDash(project.customer)}</span>
-                      </div>
-                      <div className="d-flex justify-content-between py-1">
-                        <span className="text-muted">Project Name</span>
-                        <span className="fw-medium text-end ms-3">{displayOrDash(project.projectName)}</span>
-                      </div>
-                      <div className="d-flex justify-content-between py-1">
-                        <span className="text-muted">Address</span>
-                        <span className="fw-medium text-end ms-3">{displayOrDash(project.projectAddress)}</span>
-                      </div>
-                      <div className="d-flex justify-content-between py-1">
-                        <span className="text-muted">Manufacturer</span>
-                        <span className="fw-medium text-end ms-3">{displayOrDash(selectedManufacturerName)}</span>
-                      </div>
-                    </div>
-
-                    <div className="mb-4 quote-pricing-summary">
-                      <h5 className="mb-3 fw-semibold">Pricing Summary</h5>
-
-                      <div className="quote-price-row">
-                        <span>Gutter k Style 6 Inch</span>
-                        <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.materialCost)}</span>
-                      </div>
-                      <div className="quote-price-subline">
-                        Total Gutter FT ({fmtFootage(quoteResult.pricing.totalGutter)})
-                      </div>
-                      <div className="quote-price-row">
-                        <span>3x4 Downspouts</span>
-                        <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.downspoutCost)}</span>
-                      </div>
-                      <div className="quote-price-subline">
-                        Total Downspout FT ({fmtFootage(quoteResult.pricing.totalDownspouts)})
-                      </div>
-                      {Number(quoteResult.pricing.leafGuardCost || 0) > 0 && (
-                        <div className="quote-price-row">
-                          <span>Leaf Guard</span>
-                          <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.leafGuardCost)}</span>
+                    <div className="quote-review-columns">
+                      <div className="quote-review-column quote-review-column-pricing">
+                        <div className="mb-3 quote-project-details">
+                          <div className="small text-uppercase text-muted fw-semibold mb-2">Project Details</div>
+                          <div className="quote-project-details-stack">
+                            <div className="quote-project-detail-item">
+                              <span className="quote-project-detail-label">Customer</span>
+                              <span className="quote-project-detail-value">{displayOrDash(project.customer)}</span>
+                            </div>
+                            <div className="quote-project-detail-item">
+                              <span className="quote-project-detail-label">Project Name</span>
+                              <span className="quote-project-detail-value">{displayOrDash(project.projectName)}</span>
+                            </div>
+                            <div className="quote-project-detail-item">
+                              <span className="quote-project-detail-label">Address</span>
+                              <span className="quote-project-detail-value">{displayOrDash(project.projectAddress)}</span>
+                            </div>
+                            <div className="quote-project-detail-item">
+                              <span className="quote-project-detail-label">Manufacturer</span>
+                              <span className="quote-project-detail-value">{displayOrDash(selectedManufacturerName)}</span>
+                            </div>
+                          </div>
                         </div>
-                      )}
-                      {Number(quoteResult.pricing.extrasPrice || 0) > 0 && (
-                        <div className="quote-price-row">
-                          <span>Extras</span>
-                          <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.extrasPrice)}</span>
+
+                        <div className="mb-4 quote-pricing-summary">
+                          <h5 className="mb-3 fw-semibold">Pricing Summary</h5>
+
+                          <div className="quote-price-row">
+                            <span>Gutter k Style 6 Inch</span>
+                            <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.materialCost)}</span>
+                          </div>
+                          <div className="quote-price-subline">
+                            Total Gutter FT ({fmtFootage(quoteResult.pricing.totalGutter)})
+                          </div>
+                          <div className="quote-price-row">
+                            <span>3x4 Downspouts</span>
+                            <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.downspoutCost)}</span>
+                          </div>
+                          <div className="quote-price-subline">
+                            Total Downspout FT ({fmtFootage(quoteResult.pricing.totalDownspouts)})
+                          </div>
+                          {Number(quoteResult.pricing.leafGuardCost || 0) > 0 && (
+                            <div className="quote-price-row">
+                              <span>Leaf Guard</span>
+                              <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.leafGuardCost)}</span>
+                            </div>
+                          )}
+                          {Number(quoteResult.pricing.extrasPrice || 0) > 0 && (
+                            <div className="quote-price-row">
+                              <span>Extras</span>
+                              <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.extrasPrice)}</span>
+                            </div>
+                          )}
+
+                          <div className="quote-price-gap" />
+
+                          <div className="quote-price-row">
+                            <span className="text-muted">Subtotal</span>
+                            <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.subtotal)}</span>
+                          </div>
+                          <div className={`quote-price-row ${hasDiscount ? "quote-price-negative" : "text-muted"}`}>
+                            <span>Discount ({(quoteResult.pricing.discountPercent * 100).toFixed(2)}%)</span>
+                            <span className="quote-price-value" style={moneyValueStyle}>
+                              {hasDiscount ? `-${fmtCurrency(discountAmount)}` : fmtCurrency(0)}
+                            </span>
+                          </div>
+
+                          <div className="quote-price-gap" />
+
+                          <div className="quote-price-row quote-price-row-total align-items-end">
+                            <span className="quote-total-label">Project Total</span>
+                            <span className="quote-total-value text-end" style={moneyValueStyle}>
+                              {fmtCurrency(quoteResult.pricing.projectTotal)}
+                            </span>
+                          </div>
+
+                          <div
+                            className={`quote-price-row mt-2 ${Number(quoteResult.pricing.depositPercentDisplay || 0) > 0 ? "quote-price-row-deposit-active" : ""}`}
+                          >
+                            <span className="text-muted">Deposit ({fmt(quoteResult.pricing.depositPercentDisplay)}%)</span>
+                            <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.depositAmount)}</span>
+                          </div>
+                          <div className="quote-price-row align-items-end">
+                            <span className="fw-semibold">Remaining Balance</span>
+                            <span className="quote-balance-value text-end" style={moneyValueStyle}>
+                              {fmtCurrency(quoteResult.pricing.remainingBalance)}
+                            </span>
+                          </div>
                         </div>
-                      )}
-
-                      <div className="quote-price-gap" />
-
-                      <div className="quote-price-row">
-                        <span className="text-muted">Subtotal</span>
-                        <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.subtotal)}</span>
-                      </div>
-                      <div className={`quote-price-row ${hasDiscount ? "quote-price-negative" : "text-muted"}`}>
-                        <span>Discount ({(quoteResult.pricing.discountPercent * 100).toFixed(2)}%)</span>
-                        <span className="quote-price-value" style={moneyValueStyle}>
-                          {hasDiscount ? `-${fmtCurrency(discountAmount)}` : fmtCurrency(0)}
-                        </span>
                       </div>
 
-                      <div className="quote-price-gap" />
-
-                      <div className="quote-price-row quote-price-row-total align-items-end">
-                        <span className="quote-total-label">Project Total</span>
-                        <span className="quote-total-value text-end" style={moneyValueStyle}>
-                          {fmtCurrency(quoteResult.pricing.projectTotal)}
-                        </span>
-                      </div>
-
-                      <div
-                        className={`quote-price-row mt-2 ${Number(quoteResult.pricing.depositPercentDisplay || 0) > 0 ? "quote-price-row-deposit-active" : ""}`}
-                      >
-                        <span className="text-muted">Deposit ({fmt(quoteResult.pricing.depositPercentDisplay)}%)</span>
-                        <span className="quote-price-value" style={moneyValueStyle}>{fmtCurrency(quoteResult.pricing.depositAmount)}</span>
-                      </div>
-                      <div className="quote-price-row align-items-end">
-                        <span className="fw-semibold">Remaining Balance</span>
-                        <span className="quote-balance-value text-end" style={moneyValueStyle}>
-                          {fmtCurrency(quoteResult.pricing.remainingBalance)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {hasBreakdownData && (
-                      <div className="pt-3" style={{ borderTop: "5px solid #000000" }}>
+                      {hasBreakdownData && (
+                        <div className="quote-review-column quote-review-column-material">
+                          <div className="pt-3 quote-material-details">
                         <div className="small text-uppercase text-muted fw-semibold mb-3">Material Details</div>
 
                         <div className="mb-3">
@@ -1789,8 +1795,10 @@ export default function GutterProjectForm({ mode = "create", projectId = null })
                             </div>
                           </div>
                         ) : null}
-                      </div>
-                    )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </>
               ) : (
